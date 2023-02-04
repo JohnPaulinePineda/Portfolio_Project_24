@@ -1,0 +1,3072 @@
+---
+title: 'R : Methods : Exploring Dichotomization Thresholding Strategies for Optimal Classification'
+author: "John Pauline Pineda"
+date: "February 4, 2023"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    theme: readable
+    highlight: tango
+    css: doc.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
+```
+# **1. Table of Contents**
+|
+| This document presents a non-exhaustive list of dichotomization thresholding strategies applied to optimize classification performance using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>.    
+|
+##  1.1 Sample Data
+|
+| The <mark style="background-color: #EEEEEE;color: #FF0000">**Solubility**</mark>  dataset from the  <mark style="background-color: #CCECFF">**AppliedPredictiveModeling**</mark> package was used for this illustrated example. The original numeric response was transformed to simulate a dichotomous categorical variable. Other original predictors were removed from the dataset leaving only a subset of numeric predictors used during the analysis. 
+|
+| Preliminary dataset assessment:
+|
+| **[A]** 951 rows (observations)
+|      **[A.1]** Train Set = 951 observations
+| 
+| **[B]** 229 columns (variables)
+|      **[B.1]** 1/4 response = <span style="color: #FF0000">Log_Solubility_Class</span> variable (factor)
+|             **[B.1.1]** Levels = <span style="color: #FF0000">Log_Solubility_Class=Low</span> < <span style="color: #FF0000">Log_Solubility_Class=High</span>
+|      **[B.2]** 3/4 predictors = All remaining variables (0/3 factor + 3/3 numeric)
+|     
+| 
+```{r section_1.1, warning=FALSE, message=FALSE}
+##################################
+# Loading R libraries
+##################################
+library(AppliedPredictiveModeling)
+library(caret)
+library(rpart)
+library(lattice)
+library(dplyr)
+library(tidyr)
+library(moments)
+library(skimr)
+library(RANN)
+library(pls)
+library(corrplot)
+library(tidyverse)
+library(lares)
+library(DMwR)
+library(gridExtra)
+library(rattle)
+library(rpart.plot)
+library(RColorBrewer)
+library(stats)
+library(nnet)
+library(elasticnet)
+library(earth)
+library(party)
+library(kernlab)
+library(randomForest)
+library(Cubist)
+library(pROC)
+library(mda)
+library(klaR)
+library(pamr)
+library(OptimalCutpoints)
+library(broom)
+library(PRROC)
+
+##################################
+# Loading source and
+# formulating the train set
+##################################
+data(solubility)
+Solubility_Train <- as.data.frame(cbind(solTrainY,solTrainX))
+
+##################################
+# Applying dichotomization and
+# defining the response variable
+##################################
+Solubility_Train$Log_Solubility_Class <- ifelse(Solubility_Train$solTrainY<mean(Solubility_Train$solTrainY),
+                                                "Low","High")
+Solubility_Train$Log_Solubility_Class <- factor(Solubility_Train$Log_Solubility_Class,
+                                                levels = c("Low","High"))
+
+Solubility_Train$solTrainY <- NULL
+
+##################################
+# Filtering in a subset of variables
+# for the analysis
+##################################
+Solubility_Train <- Solubility_Train[,c("MolWeight",
+                                        "NumCarbon",
+                                        "NumHalogen",
+                                        "HydrophilicFactor",
+                                        "Log_Solubility_Class")]
+
+##################################
+# Performing a general exploration of the train set
+##################################
+dim(Solubility_Train)
+str(Solubility_Train)
+summary(Solubility_Train)
+
+##################################
+# Formulating a data type assessment summary
+##################################
+PDA <- Solubility_Train
+(PDA.Summary <- data.frame(
+  Column.Index=c(1:length(names(PDA))),
+  Column.Name= names(PDA), 
+  Column.Type=sapply(PDA, function(x) class(x)), 
+  row.names=NULL)
+)
+```
+
+##  1.2 Data Quality Assessment
+|
+| Data quality assessment:
+|
+| **[A]** No missing observations noted for any variable.
+|
+| **[B]** No low variance observed for any variable with First.Second.Mode.Ratio>5.
+|
+| **[C]** No low variance observed for any variable with Unique.Count.Ratio<0.01.
+|
+| **[D]** No high skewness observed for any variables with Skewness>3 or Skewness<(-3).
+|
+|
+```{r section_1.2, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+DQA <- Solubility_Train
+
+##################################
+# Formulating an overall data quality assessment summary
+##################################
+(DQA.Summary <- data.frame(
+  Column.Index=c(1:length(names(DQA))),
+  Column.Name= names(DQA), 
+  Column.Type=sapply(DQA, function(x) class(x)), 
+  Row.Count=sapply(DQA, function(x) nrow(DQA)),
+  NA.Count=sapply(DQA,function(x)sum(is.na(x))),
+  Fill.Rate=sapply(DQA,function(x)format(round((sum(!is.na(x))/nrow(DQA)),3),nsmall=3)),
+  row.names=NULL)
+)
+
+##################################
+# Listing all predictors
+##################################
+DQA.Predictors <- DQA[,!names(DQA) %in% c("Log_Solubility_Class")]
+
+##################################
+# Listing all numeric predictors
+##################################
+DQA.Predictors.Numeric <- DQA.Predictors[,sapply(DQA.Predictors, is.numeric)]
+
+if (length(names(DQA.Predictors.Numeric))>0) {
+    print(paste0("There are ",
+               (length(names(DQA.Predictors.Numeric))),
+               " numeric predictor variable(s)."))
+} else {
+  print("There are no numeric predictor variables.")
+}
+
+##################################
+# Listing all factor predictors
+##################################
+DQA.Predictors.Factor <- DQA.Predictors[,sapply(DQA.Predictors, is.factor)]
+
+if (length(names(DQA.Predictors.Factor))>0) {
+    print(paste0("There are ",
+               (length(names(DQA.Predictors.Factor))),
+               " factor predictor variable(s)."))
+} else {
+  print("There are no factor predictor variables.")
+}
+
+##################################
+# Formulating a data quality assessment summary for factor predictors
+##################################
+if (length(names(DQA.Predictors.Factor))>0) {
+  
+  ##################################
+  # Formulating a function to determine the first mode
+  ##################################
+  FirstModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    ux[tab == max(tab)]
+  }
+
+  ##################################
+  # Formulating a function to determine the second mode
+  ##################################
+  SecondModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    fm = ux[tab == max(tab)]
+    sm = x[!(x %in% fm)]
+    usm <- unique(sm)
+    tabsm <- tabulate(match(sm, usm))
+    ifelse(is.na(usm[tabsm == max(tabsm)])==TRUE,
+           return("x"),
+           return(usm[tabsm == max(tabsm)]))
+  }
+  
+  (DQA.Predictors.Factor.Summary <- data.frame(
+  Column.Name= names(DQA.Predictors.Factor), 
+  Column.Type=sapply(DQA.Predictors.Factor, function(x) class(x)), 
+  Unique.Count=sapply(DQA.Predictors.Factor, function(x) length(unique(x))),
+  First.Mode.Value=sapply(DQA.Predictors.Factor, function(x) as.character(FirstModes(x)[1])),
+  Second.Mode.Value=sapply(DQA.Predictors.Factor, function(x) as.character(SecondModes(x)[1])),
+  First.Mode.Count=sapply(DQA.Predictors.Factor, function(x) sum(na.omit(x) == FirstModes(x)[1])),
+  Second.Mode.Count=sapply(DQA.Predictors.Factor, function(x) sum(na.omit(x) == SecondModes(x)[1])),
+  Unique.Count.Ratio=sapply(DQA.Predictors.Factor, function(x) format(round((length(unique(x))/nrow(DQA.Predictors.Factor)),3), nsmall=3)),
+  First.Second.Mode.Ratio=sapply(DQA.Predictors.Factor, function(x) format(round((sum(na.omit(x) == FirstModes(x)[1])/sum(na.omit(x) == SecondModes(x)[1])),3), nsmall=3)),
+  row.names=NULL)
+  )
+  
+} 
+
+##################################
+# Formulating a data quality assessment summary for numeric predictors
+##################################
+if (length(names(DQA.Predictors.Numeric))>0) {
+  
+  ##################################
+  # Formulating a function to determine the first mode
+  ##################################
+  FirstModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    ux[tab == max(tab)]
+  }
+
+  ##################################
+  # Formulating a function to determine the second mode
+  ##################################
+  SecondModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    fm = ux[tab == max(tab)]
+    sm = na.omit(x)[!(na.omit(x) %in% fm)]
+    usm <- unique(sm)
+    tabsm <- tabulate(match(sm, usm))
+    ifelse(is.na(usm[tabsm == max(tabsm)])==TRUE,
+           return(0.00001),
+           return(usm[tabsm == max(tabsm)]))
+  }
+  
+  (DQA.Predictors.Numeric.Summary <- data.frame(
+  Column.Name= names(DQA.Predictors.Numeric), 
+  Column.Type=sapply(DQA.Predictors.Numeric, function(x) class(x)), 
+  Unique.Count=sapply(DQA.Predictors.Numeric, function(x) length(unique(x))),
+  Unique.Count.Ratio=sapply(DQA.Predictors.Numeric, function(x) format(round((length(unique(x))/nrow(DQA.Predictors.Numeric)),3), nsmall=3)),
+  First.Mode.Value=sapply(DQA.Predictors.Numeric, function(x) format(round((FirstModes(x)[1]),3),nsmall=3)),
+  Second.Mode.Value=sapply(DQA.Predictors.Numeric, function(x) format(round((SecondModes(x)[1]),3),nsmall=3)),
+  First.Mode.Count=sapply(DQA.Predictors.Numeric, function(x) sum(na.omit(x) == FirstModes(x)[1])),
+  Second.Mode.Count=sapply(DQA.Predictors.Numeric, function(x) sum(na.omit(x) == SecondModes(x)[1])),
+  First.Second.Mode.Ratio=sapply(DQA.Predictors.Numeric, function(x) format(round((sum(na.omit(x) == FirstModes(x)[1])/sum(na.omit(x) == SecondModes(x)[1])),3), nsmall=3)),
+  Minimum=sapply(DQA.Predictors.Numeric, function(x) format(round(min(x,na.rm = TRUE),3), nsmall=3)),
+  Mean=sapply(DQA.Predictors.Numeric, function(x) format(round(mean(x,na.rm = TRUE),3), nsmall=3)),
+  Median=sapply(DQA.Predictors.Numeric, function(x) format(round(median(x,na.rm = TRUE),3), nsmall=3)),
+  Maximum=sapply(DQA.Predictors.Numeric, function(x) format(round(max(x,na.rm = TRUE),3), nsmall=3)),
+  Skewness=sapply(DQA.Predictors.Numeric, function(x) format(round(skewness(x,na.rm = TRUE),3), nsmall=3)),
+  Kurtosis=sapply(DQA.Predictors.Numeric, function(x) format(round(kurtosis(x,na.rm = TRUE),3), nsmall=3)),
+  Percentile25th=sapply(DQA.Predictors.Numeric, function(x) format(round(quantile(x,probs=0.25,na.rm = TRUE),3), nsmall=3)),
+  Percentile75th=sapply(DQA.Predictors.Numeric, function(x) format(round(quantile(x,probs=0.75,na.rm = TRUE),3), nsmall=3)),
+  row.names=NULL)
+  )  
+  
+}
+
+##################################
+# Identifying potential data quality issues
+##################################
+
+##################################
+# Checking for missing observations
+##################################
+if ((nrow(DQA.Summary[DQA.Summary$NA.Count>0,]))>0){
+  print(paste0("Missing observations noted for ",
+               (nrow(DQA.Summary[DQA.Summary$NA.Count>0,])),
+               " variable(s) with NA.Count>0 and Fill.Rate<1.0."))
+  DQA.Summary[DQA.Summary$NA.Count>0,]
+} else {
+  print("No missing observations noted.")
+}
+
+##################################
+# Checking for zero or near-zero variance predictors
+##################################
+if (length(names(DQA.Predictors.Factor))==0) {
+  print("No factor predictors noted.")
+} else if (nrow(DQA.Predictors.Factor.Summary[as.numeric(as.character(DQA.Predictors.Factor.Summary$First.Second.Mode.Ratio))>5,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Predictors.Factor.Summary[as.numeric(as.character(DQA.Predictors.Factor.Summary$First.Second.Mode.Ratio))>5,])),
+               " factor variable(s) with First.Second.Mode.Ratio>5."))
+  DQA.Predictors.Factor.Summary[as.numeric(as.character(DQA.Predictors.Factor.Summary$First.Second.Mode.Ratio))>5,]
+} else {
+  print("No low variance factor predictors due to high first-second mode ratio noted.")
+}
+
+if (length(names(DQA.Predictors.Numeric))==0) {
+  print("No numeric predictors noted.")
+} else if (nrow(DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$First.Second.Mode.Ratio))>5,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$First.Second.Mode.Ratio))>5,])),
+               " numeric variable(s) with First.Second.Mode.Ratio>5."))
+  DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$First.Second.Mode.Ratio))>5,]
+} else {
+  print("No low variance numeric predictors due to high first-second mode ratio noted.")
+}
+
+if (length(names(DQA.Predictors.Numeric))==0) {
+  print("No numeric predictors noted.")
+} else if (nrow(DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$Unique.Count.Ratio))<0.01,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$Unique.Count.Ratio))<0.01,])),
+               " numeric variable(s) with Unique.Count.Ratio<0.01."))
+  DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$Unique.Count.Ratio))<0.01,]
+} else {
+  print("No low variance numeric predictors due to low unique count ratio noted.")
+}
+
+##################################
+# Checking for skewed predictors
+##################################
+if (length(names(DQA.Predictors.Numeric))==0) {
+  print("No numeric predictors noted.")
+} else if (nrow(DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$Skewness))>3 |
+                                               as.numeric(as.character(DQA.Predictors.Numeric.Summary$Skewness))<(-3),])>0){
+  print(paste0("High skewness observed for ",
+  (nrow(DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$Skewness))>3 |
+                                               as.numeric(as.character(DQA.Predictors.Numeric.Summary$Skewness))<(-3),])),
+  " numeric variable(s) with Skewness>3 or Skewness<(-3)."))
+  DQA.Predictors.Numeric.Summary[as.numeric(as.character(DQA.Predictors.Numeric.Summary$Skewness))>3 |
+                                 as.numeric(as.character(DQA.Predictors.Numeric.Summary$Skewness))<(-3),]
+} else {
+  print("No skewed numeric predictors noted.")
+}
+
+```
+
+##  1.3 Data Preprocessing
+
+###  1.3.1 Outlier
+|
+| Outlier data assessment:
+|
+| **[A]** Outliers noted for 3 variables  with the numeric data visualized through a boxplot including observations classified as suspected outliers using the IQR criterion. The IQR criterion means that all observations above the (75th percentile + 1.5 x IQR) or below the (25th percentile - 1.5 x IQR) are suspected outliers, where IQR is the difference between the third quartile (75th percentile) and first quartile (25th percentile). Outlier treatment for numerical stability remains optional depending on potential model requirements for the subsequent steps.
+|      **[A.1]** <span style="color: #FF0000">MolWeight</span> variable (8 outliers detected)
+|      **[A.2]** <span style="color: #FF0000">NumCarbon</span> variable (35 outliers detected)
+|      **[A.3]** <span style="color: #FF0000">NumBonds</span> variable (51 outliers detected)
+|
+```{r section_1.3.1, warning=FALSE, message=FALSE, fig.width=15, fig.height=3}
+##################################
+# Loading dataset
+##################################
+DPA <- Solubility_Train
+
+##################################
+# Listing all predictors
+##################################
+DPA.Predictors <- DPA[,!names(DPA) %in% c("Log_Solubility_Class")]
+
+##################################
+# Listing all numeric predictors
+##################################
+DPA.Predictors.Numeric <- DPA.Predictors[,sapply(DPA.Predictors, is.numeric)]
+
+##################################
+# Identifying outliers for the numeric predictors
+##################################
+OutlierCountList <- c()
+
+for (i in 1:ncol(DPA.Predictors.Numeric)) {
+  Outliers <- boxplot.stats(DPA.Predictors.Numeric[,i])$out
+  OutlierCount <- length(Outliers)
+  OutlierCountList <- append(OutlierCountList,OutlierCount)
+  OutlierIndices <- which(DPA.Predictors.Numeric[,i] %in% c(Outliers))
+  boxplot(DPA.Predictors.Numeric[,i],
+          ylab = names(DPA.Predictors.Numeric)[i],
+          main = names(DPA.Predictors.Numeric)[i],
+          horizontal=TRUE)
+  mtext(paste0(OutlierCount, " Outlier(s) Detected"))
+}
+
+OutlierCountSummary <- as.data.frame(cbind(names(DPA.Predictors.Numeric),(OutlierCountList)))
+names(OutlierCountSummary) <- c("NumericPredictors","OutlierCount")
+OutlierCountSummary$OutlierCount <- as.numeric(as.character(OutlierCountSummary$OutlierCount))
+NumericPredictorWithOutlierCount <- nrow(OutlierCountSummary[OutlierCountSummary$OutlierCount>0,])
+print(paste0(NumericPredictorWithOutlierCount, " numeric variable(s) were noted with outlier(s)." ))
+
+##################################
+# Gathering descriptive statistics
+##################################
+(DPA_Skimmed <- skim(DPA.Predictors.Numeric))
+
+###################################
+# Verifying the data dimensions
+###################################
+dim(DPA.Predictors.Numeric)
+
+```
+
+###  1.3.2 Zero and Near-Zero Variance
+|
+| Zero and near-zero variance data assessment:
+|
+| **[A]** Low variance noted for any variable from the previous data quality assessment using a lower threshold.
+|
+| **[B]** No low variance noted for any variables using a preprocessing summary from the <mark style="background-color: #CCECFF">**caret**</mark> package. The <span style="color: #0000FF">nearZeroVar</span> method using both the <span style="color: #0000FF">freqCut</span> and <span style="color: #0000FF">uniqueCut</span> criteria set at 95/5 and 10, respectively, were applied on the dataset.
+|
+```{r section_1.3.2, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+DPA <- Solubility_Train
+
+##################################
+# Gathering descriptive statistics
+##################################
+(DPA_Skimmed <- skim(DPA))
+
+##################################
+# Identifying columns with low variance
+###################################
+DPA_LowVariance <- nearZeroVar(DPA,
+                               freqCut = 95/5,
+                               uniqueCut = 10,
+                               saveMetrics= TRUE)
+(DPA_LowVariance[DPA_LowVariance$nzv,])
+
+if ((nrow(DPA_LowVariance[DPA_LowVariance$nzv,]))==0){
+
+  print("No low variance predictors noted.")
+
+} else {
+
+  print(paste0("Low variance observed for ",
+               (nrow(DPA_LowVariance[DPA_LowVariance$nzv,])),
+               " numeric variable(s) with First.Second.Mode.Ratio>4 and Unique.Count.Ratio<0.10."))
+
+  DPA_LowVarianceForRemoval <- (nrow(DPA_LowVariance[DPA_LowVariance$nzv,]))
+
+  print(paste0("Low variance can be resolved by removing ",
+               (nrow(DPA_LowVariance[DPA_LowVariance$nzv,])),
+               " numeric variable(s)."))
+
+  for (j in 1:DPA_LowVarianceForRemoval) {
+  DPA_LowVarianceRemovedVariable <- rownames(DPA_LowVariance[DPA_LowVariance$nzv,])[j]
+  print(paste0("Variable ",
+               j,
+               " for removal: ",
+               DPA_LowVarianceRemovedVariable))
+  }
+
+  DPA %>%
+  skim() %>%
+  dplyr::filter(skim_variable %in% rownames(DPA_LowVariance[DPA_LowVariance$nzv,]))
+
+  ##################################
+  # Filtering out columns with low variance
+  #################################
+  DPA_ExcludedLowVariance <- DPA[,!names(DPA) %in% rownames(DPA_LowVariance[DPA_LowVariance$nzv,])]
+
+  ##################################
+  # Gathering descriptive statistics
+  ##################################
+  (DPA_ExcludedLowVariance_Skimmed <- skim(DPA_ExcludedLowVariance))
+}
+
+```
+
+###  1.3.3 Collinearity
+|
+| High collinearity data assessment:
+|
+| **[A]** No high correlation > 95% were noted for any 2 variable pairs as confirmed using the preprocessing summaries from the <mark style="background-color: #CCECFF">**caret**</mark> and <mark style="background-color: #CCECFF">**lares**</mark> packages.
+|
+```{r section_1.3.3, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+DPA <- Solubility_Train
+
+##################################
+# Listing all predictors
+##################################
+DPA.Predictors <- DPA[,!names(DPA) %in% c("Log_Solubility_Class")]
+
+##################################
+# Listing all numeric predictors
+##################################
+DPA.Predictors.Numeric <- DPA.Predictors[,sapply(DPA.Predictors, is.numeric)]
+
+##################################
+# Visualizing pairwise correlation between predictors
+##################################
+DPA_CorrelationTest <- cor.mtest(DPA.Predictors.Numeric,
+                       method = "pearson",
+                       conf.level = .95)
+
+corrplot(cor(DPA.Predictors.Numeric,
+             method = "pearson",
+             use="pairwise.complete.obs"),
+         method = "circle",
+         type = "upper",
+         order = "original",
+         tl.col = "black",
+         tl.cex = 0.75,
+         tl.srt = 90,
+         sig.level = 0.05,
+         p.mat = DPA_CorrelationTest$p,
+         insig = "blank")
+
+
+
+##################################
+# Identifying the highly correlated variables
+##################################
+DPA_Correlation <-  cor(DPA.Predictors.Numeric,
+                        method = "pearson",
+                        use="pairwise.complete.obs")
+(DPA_HighlyCorrelatedCount <- sum(abs(DPA_Correlation[upper.tri(DPA_Correlation)]) > 0.95))
+
+if (DPA_HighlyCorrelatedCount == 0) {
+  print("No highly correlated predictors noted.")
+} else {
+  print(paste0("High correlation observed for ",
+               (DPA_HighlyCorrelatedCount),
+               " pairs of numeric variable(s) with Correlation.Coefficient>0.95."))
+
+  (DPA_HighlyCorrelatedPairs <- corr_cross(DPA.Predictors.Numeric,
+  max_pvalue = 0.05,
+  top = DPA_HighlyCorrelatedCount,
+  rm.na = TRUE,
+  grid = FALSE
+))
+
+}
+
+
+if (DPA_HighlyCorrelatedCount > 0) {
+  DPA_HighlyCorrelated <- findCorrelation(DPA_Correlation, cutoff = 0.95)
+
+  (DPA_HighlyCorrelatedForRemoval <- length(DPA_HighlyCorrelated))
+
+  print(paste0("High correlation can be resolved by removing ",
+               (DPA_HighlyCorrelatedForRemoval),
+               " numeric variable(s)."))
+
+  for (j in 1:DPA_HighlyCorrelatedForRemoval) {
+  DPA_HighlyCorrelatedRemovedVariable <- colnames(DPA.Predictors.Numeric)[DPA_HighlyCorrelated[j]]
+  print(paste0("Variable ",
+               j,
+               " for removal: ",
+               DPA_HighlyCorrelatedRemovedVariable))
+  }
+
+  ##################################
+  # Filtering out columns with high correlation
+  #################################
+  DPA_ExcludedHighCorrelation <- DPA[,-DPA_HighlyCorrelated]
+
+  ##################################
+  # Gathering descriptive statistics
+  ##################################
+  (DPA_ExcludedHighCorrelation_Skimmed <- skim(DPA_ExcludedHighCorrelation))
+
+}
+
+```
+
+###  1.3.4 Linear Dependencies
+|
+| Linear dependency data assessment:
+|
+| **[A]** No linear dependencies noted for any subsets of variables using the preprocessing summary from the <mark style="background-color: #CCECFF">**caret**</mark> package applying the <span style="color: #0000FF">findLinearCombos</span> method which utilizes the QR decomposition of a matrix to enumerate sets of linear combinations (if they exist). 
+|
+```{r section_1.3.4, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+DPA <- Solubility_Train
+
+##################################
+# Listing all predictors
+##################################
+DPA.Predictors <- DPA[,!names(DPA) %in% c("Log_Solubility_Class")]
+
+##################################
+# Listing all numeric predictors
+##################################
+DPA.Predictors.Numeric <- DPA.Predictors[,sapply(DPA.Predictors, is.numeric)]
+
+##################################
+# Identifying the linearly dependent variables
+##################################
+DPA_LinearlyDependent <- findLinearCombos(DPA.Predictors.Numeric)
+
+(DPA_LinearlyDependentCount <- length(DPA_LinearlyDependent$linearCombos))
+
+if (DPA_LinearlyDependentCount == 0) {
+  print("No linearly dependent predictors noted.")
+} else {
+  print(paste0("Linear dependency observed for ",
+               (DPA_LinearlyDependentCount),
+               " subset(s) of numeric variable(s)."))
+
+  for (i in 1:DPA_LinearlyDependentCount) {
+    DPA_LinearlyDependentSubset <- colnames(DPA.Predictors.Numeric)[DPA_LinearlyDependent$linearCombos[[i]]]
+    print(paste0("Linear dependent variable(s) for subset ",
+                 i,
+                 " include: ",
+                 DPA_LinearlyDependentSubset))
+  }
+
+}
+
+##################################
+# Identifying the linearly dependent variables for removal
+##################################
+
+if (DPA_LinearlyDependentCount > 0) {
+  DPA_LinearlyDependent <- findLinearCombos(DPA.Predictors.Numeric)
+
+  DPA_LinearlyDependentForRemoval <- length(DPA_LinearlyDependent$remove)
+
+  print(paste0("Linear dependency can be resolved by removing ",
+               (DPA_LinearlyDependentForRemoval),
+               " numeric variable(s)."))
+
+  for (j in 1:DPA_LinearlyDependentForRemoval) {
+  DPA_LinearlyDependentRemovedVariable <- colnames(DPA.Predictors.Numeric)[DPA_LinearlyDependent$remove[j]]
+  print(paste0("Variable ",
+               j,
+               " for removal: ",
+               DPA_LinearlyDependentRemovedVariable))
+  }
+
+  ##################################
+  # Filtering out columns with linear dependency
+  #################################
+  DPA_ExcludedLinearlyDependent <- DPA[,-DPA_LinearlyDependent$remove]
+
+  ##################################
+  # Gathering descriptive statistics
+  ##################################
+  (DPA_ExcludedLinearlyDependent_Skimmed <- skim(DPA_ExcludedLinearlyDependent))
+
+}
+
+```
+
+###  1.3.5 Pre-Processed Dataset
+|
+| Preliminary dataset assessment:
+|
+| **[A]** 951 rows (observations)
+|      **[A.1]** Train Set = 951 observations
+| 
+| **[B]** 4 columns (variables)
+|      **[B.1]** 1/4 response = <span style="color: #FF0000">Log_Solubility_Class</span> variable (factor)
+|             **[B.1.1]** Levels = <span style="color: #FF0000">Log_Solubility_Class=Low</span> < <span style="color: #FF0000">Log_Solubility_Class=High</span>
+|      **[B.2]** 3/4 predictors = All remaining variables (0/3 factor + 3/3 numeric)
+| 
+| **[C]** Pre-processing actions applied:
+|      **[C.1]** No predictors removed due to zero or near-zero variance, high correlation or linear dependencies 
+|
+```{r section_1.3.5, warning=FALSE, message=FALSE}
+##################################
+# Creating the pre-modelling
+# train set
+##################################
+PMA_PreModelling_Train <- Solubility_Train
+
+##################################
+# Gathering descriptive statistics
+##################################
+(PMA_PreModelling_Train_Skimmed <- skim(PMA_PreModelling_Train))
+
+###################################
+# Verifying the data dimensions
+# for the train set
+###################################
+dim(PMA_PreModelling_Train)
+
+```
+
+## 1.4 Data Exploration
+|
+| Exploratory data analysis:
+|
+| **[A]** All numeric variables demonstrated differential relationships with the <span style="color: #FF0000">Log_Solubility_Class</span> response variable:
+|      **[A.1]** <span style="color: #FF0000">MolWeight</span> variable (numeric)
+|      **[A.2]** <span style="color: #FF0000">NumCarbon</span> variable (numeric)
+|      **[A.3]** <span style="color: #FF0000">NumBonds</span> variable (numeric)
+|
+```{r section_1.4, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+EDA <- PMA_PreModelling_Train
+
+##################################
+# Listing all predictors
+##################################
+EDA.Predictors <- EDA[,!names(EDA) %in% c("Log_Solubility_Class")]
+
+##################################
+# Listing all numeric predictors
+##################################
+EDA.Predictors.Numeric <- EDA.Predictors[,sapply(EDA.Predictors, is.numeric)]
+ncol(EDA.Predictors.Numeric)
+names(EDA.Predictors.Numeric)
+
+##################################
+# Formulating the box plots
+##################################
+featurePlot(x = EDA.Predictors.Numeric,
+            y = EDA$Log_Solubility_Class,
+            plot = "box",
+            scales = list(x = list(relation="free", rot = 90),
+                          y = list(relation="free")),
+            adjust = 1.5,
+            pch = "|")
+
+```
+
+## 1.5 Predictive Model Development and Dichotomization Thresholding
+
+###  1.5.1 Logistic Regression Model Index and Probability Curve Estimation
+|
+| **[A]** The logistic regression model from both the <mark style="background-color: #CCECFF">**stats**</mark> and <mark style="background-color: #CCECFF">**caret**</mark> packages was implemented. 
+|
+| **[B]** The logistic curve was formulated by plotting the predicted probabilities against the classification index using the logit values.
+|
+| **[C]** Discrimination power of the model was quantified using the area of the receiver operating characteristic curve, formulated for both the predicted probabilities and classification index. However, the subsequent exercise on exploring dichotomization thresholds was only applied on the predicted probabilities.
+|
+| **[D]** The performance of the model is summarized as follows:
+|      **[D.1]** Final model configuration is fixed due to the absence of a hyperparameter
+|      **[D.2]** Apparent ROC Curve AUC = 0.91432
+|      **[D.3]** Cross-Validated ROC Curve AUC = 0.91229
+|
+| **[E]** The model allows for ranking of predictors in terms of variable importance. The top-performing predictors in the model are as follows:
+|      **[E.1]** <span style="color: #FF0000">HydrophilicFactor</span> variable (numeric)
+|      **[E.2]** <span style="color: #FF0000">NumCarbon</span> variable (numeric)
+|      **[E.3]** <span style="color: #FF0000">NumHalogen</span> variable (numeric)
+|
+```{r section_1.5.1, warning=FALSE, message=FALSE}
+##################################
+# Creating a local object
+# for the train and test sets
+##################################
+PMA_PreModelling_Train_LR <- PMA_PreModelling_Train
+
+##################################
+# Formulating the Logistic Regression model
+##################################
+LR_Model <-  PMA_PreModelling_Train_LR %>%
+  mutate(Log_Solubility_Class = as.factor(Log_Solubility_Class)) %>%
+  glm(formula = Log_Solubility_Class ~ MolWeight + 
+        NumCarbon +
+        NumHalogen +
+        HydrophilicFactor,
+      family = binomial)
+
+##################################
+# Consolidating the model results
+##################################
+summary(LR_Model)
+
+##################################
+# Computing the model predictions
+##################################
+LR_Model_Predictions <- augment(LR_Model, 
+                               type.predict = 'response', 
+                               newdata = PMA_PreModelling_Train_LR, 
+                               se_fit = TRUE) %>%
+    mutate(lower = .fitted - 1.96*.se.fit,
+           upper = .fitted + 1.96*.se.fit) %>%
+    mutate_if(is.numeric, ~ round(.,5))
+
+LR_Model_Predictions <- as.data.frame(LR_Model_Predictions)
+
+LR_Model_Predictions$LR_Prob <- LR_Model_Predictions$.fitted
+LR_Model_Predictions$LR_SE   <- LR_Model_Predictions$.se.fit
+LR_Model_Predictions$LR_UCL  <- LR_Model_Predictions$lower
+LR_Model_Predictions$LR_LCL  <- LR_Model_Predictions$upper
+
+##################################
+# Creating a classification index
+# based from the model predictions
+##################################
+LR_Model_Predictions$LR_LP   <- log(LR_Model_Predictions$LR_Prob/(1-LR_Model_Predictions$LR_Prob))
+
+(LR_Model_Predictions <- LR_Model_Predictions[,!names(LR_Model_Predictions) %in% 
+                                                c(".fitted",
+                                                  ".se.fit",
+                                                  "lower",
+                                                  "upper")])
+
+LR_Model_Predictions$LR_LCL <- ifelse(LR_Model_Predictions$LR_LCL<0.000,0.001,
+                                      LR_Model_Predictions$LR_LCL)
+LR_Model_Predictions$LR_UCL <- ifelse(LR_Model_Predictions$LR_UCL>0.995,0.999,
+                                      LR_Model_Predictions$LR_UCL)
+
+##################################
+# Formulating the probability curve
+# using the model predictions and 
+# the classification index
+##################################
+LR_Model_Predictions %>%
+  ggplot(aes(x = LR_LP ,
+             y = LR_Prob,
+             color = Log_Solubility_Class)) +
+  scale_colour_manual(values=c("#1846BA","#B80000")) +
+  geom_point(size=3) +
+  geom_line(color="black") +
+  geom_errorbar(aes(ymin = LR_LCL,
+                    ymax = LR_UCL),
+                width = .1) +
+  xlab("Log Solubility Classification Index (Logit Values)") +
+  ylab("Estimated Log Solubility Class Probability") +
+  labs(color = "Log Solubility Class") +
+  scale_x_continuous( limits=c(-11,11), breaks=seq(-11,11,by=1)) +
+  scale_y_continuous( limits=c(0,1), breaks=seq(0,1,by=0.1),labels = scales::percent) +
+  ggtitle("Estimated Log Solubility Class Probabilities Based on Classification Index") +
+  theme_light() +
+  theme(plot.title = element_text(color="black", size=14, face="bold", hjust=0.50),
+        axis.title.x = element_text(color="black", size=12, face="bold"),
+        axis.title.y = element_text(color="black", size=12, face="bold"),
+        legend.position="top")
+
+##################################
+# Formulating the corresponding
+# receiver operating characteristic (ROC)
+# using the model predictions
+##################################
+LR_Prob_Low  <- LR_Model_Predictions[LR_Model_Predictions$Log_Solubility_Class=="Low",
+                                    c("LR_Prob")]
+LR_Prob_High <- LR_Model_Predictions[LR_Model_Predictions$Log_Solubility_Class=="High",
+                                    c("LR_Prob")]
+LR_Model_Prob_ROC <- roc.curve(scores.class1 = LR_Prob_Low,
+                               scores.class0 = LR_Prob_High,
+                                curve = TRUE)
+
+plot(LR_Model_Prob_ROC,
+     xlab="1-Specificity", 
+     ylab="Sensitivity",
+     main="ROC Curve of the Log Solubility Class Probabilities", 
+     color=TRUE, 
+     lwd=8,
+     legend=3)
+
+##################################
+# Formulating the corresponding
+# receiver operating characteristic (ROC)
+# using the classification index
+##################################
+LR_LP_Low  <- LR_Model_Predictions[LR_Model_Predictions$Log_Solubility_Class=="Low",
+                                    c("LR_LP")]
+LR_LP_High <- LR_Model_Predictions[LR_Model_Predictions$Log_Solubility_Class=="High",
+                                    c("LR_LP")]
+LR_Model_LP_ROC <- roc.curve(scores.class1 = LR_LP_Low,
+                             scores.class0 = LR_LP_High,
+                             curve = TRUE)
+
+plot(LR_Model_LP_ROC,
+     xlab="1-Specificity", 
+     ylab="Sensitivity",
+     main="ROC Curve of the Log Solubility Classification Index", 
+     color=TRUE, 
+     lwd=8,
+     legend=3)
+
+##################################
+# Conducting internal model validation
+##################################
+##################################
+# Creating consistent fold assignments
+# for the 10-Fold Cross Validation process
+##################################
+set.seed(12345678)
+KFold_Indices <- createFolds(PMA_PreModelling_Train_LR$Log_Solubility_Class,
+                             k = 10,
+                             returnTrain=TRUE)
+KFold_Control <- trainControl(method="cv",
+                              index=KFold_Indices,
+                              summaryFunction = twoClassSummary,
+                              classProbs = TRUE)
+
+##################################
+# Setting the conditions
+# for hyperparameter tuning
+##################################
+# No hyperparameter tuning process conducted
+# hyperparameter=intercept fixed to TRUE
+
+##################################
+# Running the logistic regression model
+# by setting the caret method to 'glm'
+##################################
+set.seed(12345678)
+LR_Tune <- train(x = PMA_PreModelling_Train_LR[,!names(PMA_PreModelling_Train_LR) %in% c("Log_Solubility_Class")],
+                 y = PMA_PreModelling_Train_LR$Log_Solubility_Class,
+                 method = "glm",
+                 metric = "ROC",
+                 trControl = KFold_Control)
+
+##################################
+# Reporting the cross-validation results
+# for the train set
+##################################
+LR_Tune
+
+LR_Tune$finalModel
+
+LR_Tune$results
+
+(LR_Train_ROCCurveAUC <- LR_Tune$results$ROC)
+
+##################################
+# Identifying and plotting the
+# best model predictors
+##################################
+LR_VarImp <- varImp(LR_Tune, scale = TRUE)
+plot(LR_VarImp,
+     top=4,
+     scales=list(y=list(cex = .95)),
+     main="Ranked Variable Importance : Logistic Regression",
+     xlab="Scaled Variable Importance Metrics",
+     ylab="Predictors",
+     cex=2,
+     origin=0,
+     alpha=0.45)
+
+```
+
+###  1.5.2 Threshold Criterion Using Minimum Sensitivity (TC_MinValueSe)
+|
+| **[A]** The <span style="color: #0000FF">MinValueSe</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies a minimum value set for sensitivity.
+|  
+| **[B]** The threshold criterion requires to set 1 parameter:
+|      **[B.1]** <span style="color: #FF0000">valueSe</span> = minimum sensitivity value set at 0.90
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.44773
+|      **[C.2]** Apparent Sensitivity = 0.90458
+|      **[C.3]** Apparent Specificity = 0.73536
+|
+```{r section_1.5.2, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion using a
+# minimum value set for sensitivity
+######################################
+ClassificationMetrics.Class0.LO.MINVALUESE <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinValueSe"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(valueSe=0.90),
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinValueSe$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinValueSe$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinValueSe$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinValueSe$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MINVALUESE <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinValueSe"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(valueSe=0.90),
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinValueSe$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinValueSe$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinValueSe$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinValueSe$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MINVALUESE(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MINVALUESE",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MINVALUESE.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MINVALUESE.SUMMARY$ROCAUC <- as.numeric(as.character(MINVALUESE.SUMMARY$ROCAUC))
+MINVALUESE.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MINVALUESE.SUMMARY$ApparentSensitivity))
+MINVALUESE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUESE.SUMMARY$ApparentSpecificity))
+
+(MINVALUESE.Threshold <- MINVALUESE.SUMMARY$OptimalThreshold.MINVALUESE)
+
+(MINVALUESE.Sensitivity <- MINVALUESE.SUMMARY$ApparentSensitivity)
+
+(MINVALUESE.Specificity <- MINVALUESE.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.3 Threshold Criterion Using Minimum Specificity (TC_MinValueSp)
+|
+| **[A]** The <span style="color: #0000FF">MinValueSp</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies a minimum value set for specificity.
+|  
+| **[B]** The threshold criterion requires to set 1 parameter:
+|      **[B.1]** <span style="color: #FF0000">valueSp</span> = minimum specificity value set at 0.90
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.72336
+|      **[C.2]** Apparent Sensitivity = 0.72710
+|      **[C.3]** Apparent Specificity = 0.90398
+|
+```{r section_1.5.3, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion using a
+# minimum value set for specificity
+######################################
+ClassificationMetrics.Class0.LO.MINVALUESP <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinValueSp"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(valueSp=0.90),
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinValueSp$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinValueSp$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinValueSp$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinValueSp$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MINVALUESP <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinValueSp"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(valueSp=0.90),
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinValueSp$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinValueSp$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinValueSp$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinValueSp$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MINVALUESP(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MINVALUESP",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MINVALUESP.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MINVALUESP.SUMMARY$ROCAUC <- as.numeric(as.character(MINVALUESP.SUMMARY$ROCAUC))
+MINVALUESP.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MINVALUESP.SUMMARY$ApparentSensitivity))
+MINVALUESP.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUESP.SUMMARY$ApparentSpecificity))
+
+(MINVALUESP.Threshold <- MINVALUESP.SUMMARY$OptimalThreshold.MINVALUESP)
+
+(MINVALUESP.Sensitivity <- MINVALUESP.SUMMARY$ApparentSensitivity)
+
+(MINVALUESP.Specificity <- MINVALUESP.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.4 Threshold Criterion Using Maximum Product of Specificity and Sensitivity (TC_MaxProdSpSe)
+|
+| **[A]** The <span style="color: #0000FF">MaxProdSpSe</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which maximizes the product of specificity and sensitivity or accuracy area.
+|  
+| **[B]** The threshold criterion does not require to set any parameter.
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.64163
+|      **[C.2]** Apparent Sensitivity = 0.80153
+|      **[C.3]** Apparent Specificity = 0.87354
+|
+```{r section_1.5.4, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion which maximizes the
+# product of specificity and sensitivity
+# or accuracy area
+######################################
+ClassificationMetrics.Class0.LO.MAXPRODSPSE <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MaxProdSpSe"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MaxProdSpSe$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MaxProdSpSe$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MaxProdSpSe$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MaxProdSpSe$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MAXPRODSPSE <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MaxProdSpSe"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MaxProdSpSe$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MaxProdSpSe$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MaxProdSpSe$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MaxProdSpSe$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MAXPRODSPSE(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MAXPRODSPSE",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MAXPRODSPSE.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MAXPRODSPSE.SUMMARY$ROCAUC <- as.numeric(as.character(MAXPRODSPSE.SUMMARY$ROCAUC))
+MAXPRODSPSE.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MAXPRODSPSE.SUMMARY$ApparentSensitivity))
+MAXPRODSPSE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXPRODSPSE.SUMMARY$ApparentSpecificity))
+
+(MAXPRODSPSE.Threshold <- MAXPRODSPSE.SUMMARY$OptimalThreshold.MAXPRODSPSE)
+
+(MAXPRODSPSE.Sensitivity <- MAXPRODSPSE.SUMMARY$ApparentSensitivity)
+
+(MAXPRODSPSE.Specificity <- MAXPRODSPSE.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.5 Threshold Criterion Using ROC Curve Point Closest to Point (0,1) (TC_ROC01)
+|
+| **[A]** The <span style="color: #0000FF">ROC01</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which minimizes the distance between the ROC plot and point (0,1).
+|  
+| **[B]** The threshold criterion does not require to set any parameter.
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.64163
+|      **[C.2]** Apparent Sensitivity = 0.80153
+|      **[C.3]** Apparent Specificity = 0.87354
+|
+```{r section_1.5.5, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion which minimizes the
+# distance between the ROC plot and point (0,1)
+######################################
+ClassificationMetrics.Class0.LO.ROC01 <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("ROC01"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$ROC01$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$ROC01$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$ROC01$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$ROC01$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.ROC01 <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("ROC01"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$ROC01$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$ROC01$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$ROC01$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$ROC01$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.ROC01(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.ROC01",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+ROC01.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+ROC01.SUMMARY$ROCAUC <- as.numeric(as.character(ROC01.SUMMARY$ROCAUC))
+ROC01.SUMMARY$ApparentSensitivity <- as.numeric(as.character(ROC01.SUMMARY$ApparentSensitivity))
+ROC01.SUMMARY$ApparentSpecificity <- as.numeric(as.character(ROC01.SUMMARY$ApparentSpecificity))
+
+(ROC01.Threshold <- ROC01.SUMMARY$OptimalThreshold.ROC01)
+
+(ROC01.Sensitivity <- ROC01.SUMMARY$ApparentSensitivity)
+
+(ROC01.Specificity <- ROC01.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.6 Threshold Criterion Using Sensitivity Equals Specificity (TC_SpEqualSe)
+|
+| **[A]** The <span style="color: #0000FF">SpEqualSe</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was applies the ROC curve point where specificity approximately equals sensitivity.
+|  
+| **[B]** The threshold criterion does not require to set any parameter.
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.61205
+|      **[C.2]** Apparent Sensitivity = 0.82634
+|      **[C.3]** Apparent Specificity = 0.82670
+|
+```{r section_1.5.6, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion using the ROC curve point where
+# specificity approximately equals sensitivity
+######################################
+ClassificationMetrics.Class0.LO.SPEQUALSE <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("SpEqualSe"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$SpEqualSe$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$SpEqualSe$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$SpEqualSe$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$SpEqualSe$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.SPEQUALSE <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("SpEqualSe"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$SpEqualSe$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$SpEqualSe$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$SpEqualSe$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$SpEqualSe$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.SPEQUALSE(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.SPEQUALSE",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+SPEQUALSE.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+SPEQUALSE.SUMMARY$ROCAUC <- as.numeric(as.character(SPEQUALSE.SUMMARY$ROCAUC))
+SPEQUALSE.SUMMARY$ApparentSensitivity <- as.numeric(as.character(SPEQUALSE.SUMMARY$ApparentSensitivity))
+SPEQUALSE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(SPEQUALSE.SUMMARY$ApparentSpecificity))
+
+(SPEQUALSE.Threshold <- SPEQUALSE.SUMMARY$OptimalThreshold.SPEQUALSE)
+
+(SPEQUALSE.Sensitivity <- SPEQUALSE.SUMMARY$ApparentSensitivity)
+
+(SPEQUALSE.Specificity <- SPEQUALSE.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.7 Threshold Criterion Using Youden's Index (TC_Youden)
+|
+| **[A]** The <span style="color: #0000FF">Youden</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies the Youden Index.
+|  
+| **[B]** The threshold criterion requires to set 2 parameters:
+|      **[B.1]** <span style="color: #FF0000">generalized.Youden</span> = logical  value indicating the application of the generalized youden methodology set at FALSE
+|      **[B.2]** <span style="color: #FF0000">costs.benefits.Youden</span> = logical value indicating the application of the cost benefit methodology set at FALSE
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.64163
+|      **[C.2]** Apparent Sensitivity = 0.80153
+|      **[C.3]** Apparent Specificity = 0.87354
+|
+```{r section_1.5.7, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion using the
+# Youden Index
+######################################
+ClassificationMetrics.Class0.LO.YOUDEN <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("Youden"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(generalized.Youden=FALSE,
+                                                                     costs.benefits.Youden=FALSE),
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$Youden$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$Youden$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$Youden$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$Youden$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.YOUDEN <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("Youden"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(generalized.Youden=FALSE,
+                                                                     costs.benefits.Youden=FALSE),
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$Youden$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$Youden$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$Youden$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$Youden$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.YOUDEN(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.YOUDEN",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+YOUDEN.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+YOUDEN.SUMMARY$ROCAUC <- as.numeric(as.character(YOUDEN.SUMMARY$ROCAUC))
+YOUDEN.SUMMARY$ApparentSensitivity <- as.numeric(as.character(YOUDEN.SUMMARY$ApparentSensitivity))
+YOUDEN.SUMMARY$ApparentSpecificity <- as.numeric(as.character(YOUDEN.SUMMARY$ApparentSpecificity))
+
+(YOUDEN.Threshold <- YOUDEN.SUMMARY$OptimalThreshold.YOUDEN)
+
+(YOUDEN.Sensitivity <- YOUDEN.SUMMARY$ApparentSensitivity)
+
+(YOUDEN.Specificity <- YOUDEN.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.8 Threshold Criterion Using Maximum Efficiency (TC_MaxEfficiency)
+|
+| **[A]** The <span style="color: #0000FF">MaxEfficiency</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which maximizes the efficiency or minimizes error rate.
+|  
+| **[B]** The threshold criterion requires to set 1 parameter:
+|      **[B.1]** <span style="color: #FF0000">costs.benefits.Efficiency</span> = logical value indicating the application of the cost benefit methodology set at FALSE
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.64163
+|      **[C.2]** Apparent Sensitivity = 0.80153
+|      **[C.3]** Apparent Specificity = 0.87354
+|
+```{r section_1.5.8, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion which maximizes the
+# efficiency or minimizes error rate
+######################################
+ClassificationMetrics.Class0.LO.MAXEFFICIENCY <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MaxEfficiency"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(costs.benefits.Efficiency=TRUE),
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MaxEfficiency$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MaxEfficiency$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MaxEfficiency$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MaxEfficiency$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MAXEFFICIENCY <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MaxEfficiency"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(costs.benefits.Efficiency=TRUE),
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MaxEfficiency$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MaxEfficiency$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MaxEfficiency$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MaxEfficiency$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MAXEFFICIENCY(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MAXEFFICIENCY",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MAXEFFICIENCY.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MAXEFFICIENCY.SUMMARY$ROCAUC <- as.numeric(as.character(MAXEFFICIENCY.SUMMARY$ROCAUC))
+MAXEFFICIENCY.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MAXEFFICIENCY.SUMMARY$ApparentSensitivity))
+MAXEFFICIENCY.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXEFFICIENCY.SUMMARY$ApparentSpecificity))
+
+(MAXEFFICIENCY.Threshold <- MAXEFFICIENCY.SUMMARY$OptimalThreshold.MAXEFFICIENCY)
+
+(MAXEFFICIENCY.Sensitivity <- MAXEFFICIENCY.SUMMARY$ApparentSensitivity)
+
+(MAXEFFICIENCY.Specificity <- MAXEFFICIENCY.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.9 Threshold Criterion Using Minimization of Most Frequent Error (TC_Minimax)
+|
+| **[A]** The <span style="color: #0000FF">Minimax</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which minimizes the most frequent error.
+|  
+| **[B]** The threshold criterion does not require to set any parameter.
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.56057
+|      **[C.2]** Apparent Sensitivity = 0.84351
+|      **[C.3]** Apparent Specificity = 0.81030
+|
+```{r section_1.5.9, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion which minimizes the
+# most frequent error
+######################################
+ClassificationMetrics.Class0.LO.MINIMAX <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("Minimax"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$Minimax$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$Minimax$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$Minimax$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$Minimax$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MINIMAX <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("Minimax"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$Minimax$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$Minimax$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$Minimax$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$Minimax$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MINIMAX(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MINIMAX",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MINIMAX.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MINIMAX.SUMMARY$ROCAUC <- as.numeric(as.character(MINIMAX.SUMMARY$ROCAUC))
+MINIMAX.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MINIMAX.SUMMARY$ApparentSensitivity))
+MINIMAX.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINIMAX.SUMMARY$ApparentSpecificity))
+
+(MINIMAX.Threshold <- MINIMAX.SUMMARY$OptimalThreshold.MINIMAX)
+
+(MINIMAX.Sensitivity <- MINIMAX.SUMMARY$ApparentSensitivity)
+
+(MINIMAX.Specificity <- MINIMAX.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.10 Threshold Criterion Using Maximum Diagnostic Odds Ratio (TC_MaxDOR)
+|
+| **[A]** The <span style="color: #0000FF">MaxDOR</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which maximizes the Diagnostic Odds Ratio.
+|  
+| **[B]** The threshold criterion does not require to set any parameter.
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.92748
+|      **[C.2]** Apparent Sensitivity = 0.31298
+|      **[C.3]** Apparent Specificity = 1.00000
+|
+```{r section_1.5.10, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion which maximizes the
+# Diagnostic Odds Ratio
+######################################
+ClassificationMetrics.Class0.LO.MAXDOR <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MaxDOR"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MaxDOR$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MaxDOR$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MaxDOR$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MaxDOR$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MAXDOR <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MaxDOR"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MaxDOR$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MaxDOR$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MaxDOR$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MaxDOR$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MAXDOR(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MAXDOR",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MAXDOR.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MAXDOR.SUMMARY$ROCAUC <- as.numeric(as.character(MAXDOR.SUMMARY$ROCAUC))
+MAXDOR.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MAXDOR.SUMMARY$ApparentSensitivity))
+MAXDOR.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXDOR.SUMMARY$ApparentSpecificity))
+
+(MAXDOR.Threshold <- MAXDOR.SUMMARY$OptimalThreshold.MAXDOR)
+
+(MAXDOR.Sensitivity <- MAXDOR.SUMMARY$ApparentSensitivity)
+
+(MAXDOR.Specificity <- MAXDOR.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.11 Threshold Criterion Using Maximum Kappa (TC_MaxKappa)
+|
+| **[A]** The <span style="color: #0000FF">MaxKappa</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which maximizes the Kappa Index.
+|  
+| **[B]** The threshold criterion does not require to set any parameter.
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.64163
+|      **[C.2]** Apparent Sensitivity = 0.80153
+|      **[C.3]** Apparent Specificity = 0.87354
+|
+```{r section_1.5.11, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion which maximizes the
+# Kappa Index
+######################################
+ClassificationMetrics.Class0.LO.MAXKAPPA <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MaxKappa"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(weighted.Kappa=FALSE),
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MaxKappa$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MaxKappa$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MaxKappa$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MaxKappa$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MAXKAPPA <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MaxKappa"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(weighted.Kappa=FALSE),
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MaxKappa$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MaxKappa$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MaxKappa$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MaxKappa$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MAXKAPPA(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MAXKAPPA",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MAXKAPPA.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MAXKAPPA.SUMMARY$ROCAUC <- as.numeric(as.character(MAXKAPPA.SUMMARY$ROCAUC))
+MAXKAPPA.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MAXKAPPA.SUMMARY$ApparentSensitivity))
+MAXKAPPA.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXKAPPA.SUMMARY$ApparentSpecificity))
+
+(MAXKAPPA.Threshold <- MAXKAPPA.SUMMARY$OptimalThreshold.MAXKAPPA)
+
+(MAXKAPPA.Sensitivity <- MAXKAPPA.SUMMARY$ApparentSensitivity)
+
+(MAXKAPPA.Specificity <- MAXKAPPA.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.12 Threshold Criterion Using Minimum Negative Predictive Value (TC_MinValueNPV)
+|
+| **[A]** The <span style="color: #0000FF">MinValueNPV</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies a minimum value set for negative predictive value.
+|  
+| **[B]** The threshold criterion requires to set 1 parameter:
+|      **[B.1]** <span style="color: #FF0000">valueNPV</span> = minimum NPV value set at 0.90
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.31952
+|      **[C.2]** Apparent Sensitivity = 0.94656
+|      **[C.3]** Apparent Specificity = 0.62763
+|
+```{r section_1.5.12, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion using a
+# minimum value set for negative predictive value
+######################################
+ClassificationMetrics.Class0.LO.MINVALUENPV <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinValueNPV"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(valueNPV=0.90),
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinValueNPV$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinValueNPV$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinValueNPV$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinValueNPV$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MINVALUENPV <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinValueNPV"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(valueNPV=0.90),
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinValueNPV$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinValueNPV$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinValueNPV$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinValueNPV$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MINVALUENPV(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MINVALUENPV",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MINVALUENPV.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MINVALUENPV.SUMMARY$ROCAUC <- as.numeric(as.character(MINVALUENPV.SUMMARY$ROCAUC))
+MINVALUENPV.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MINVALUENPV.SUMMARY$ApparentSensitivity))
+MINVALUENPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUENPV.SUMMARY$ApparentSpecificity))
+
+(MINVALUENPV.Threshold <- MINVALUENPV.SUMMARY$OptimalThreshold.MINVALUENPV)
+
+(MINVALUENPV.Sensitivity <- MINVALUENPV.SUMMARY$ApparentSensitivity)
+
+(MINVALUENPV.Specificity <- MINVALUENPV.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.13 Threshold Criterion Using Minimum Positive Predictive Value (TC_MinValuePPV)
+|
+| **[A]** The <span style="color: #0000FF">MinValuePPV</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies a minimum value set for negative predictive value.
+|  
+| **[B]** The threshold criterion requires to set 1 parameter:
+|      **[B.1]** <span style="color: #FF0000">valuePPV</span> = minimum PPV value set at 0.90
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.72336
+|      **[C.2]** Apparent Sensitivity = 0.72710
+|      **[C.3]** Apparent Specificity = 0.90398
+|
+```{r section_1.5.13, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion using a
+# minimum value set for positive predictive value
+######################################
+ClassificationMetrics.Class0.LO.MINVALUEPPV <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinValuePPV"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(valuePPV=0.90),
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinValuePPV$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinValuePPV$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinValuePPV$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinValuePPV$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MINVALUEPPV <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinValuePPV"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(valuePPV=0.90),
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinValuePPV$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinValuePPV$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinValuePPV$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinValuePPV$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MINVALUEPPV(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MINVALUEPPV",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MINVALUEPPV.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MINVALUEPPV.SUMMARY$ROCAUC <- as.numeric(as.character(MINVALUEPPV.SUMMARY$ROCAUC))
+MINVALUEPPV.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MINVALUEPPV.SUMMARY$ApparentSensitivity))
+MINVALUEPPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUEPPV.SUMMARY$ApparentSpecificity))
+
+(MINVALUEPPV.Threshold <- MINVALUEPPV.SUMMARY$OptimalThreshold.MINVALUEPPV)
+
+(MINVALUEPPV.Sensitivity <- MINVALUEPPV.SUMMARY$ApparentSensitivity)
+
+(MINVALUEPPV.Specificity <- MINVALUEPPV.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.14 Threshold Criterion Using Negative Equals Positive Predictive Values (TC_NPVEqualPPV)
+|
+| **[A]** The <span style="color: #0000FF">NPVEqualPPV</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applied the ROC curve point where NPV approximately equals PPV.
+|  
+| **[B]** The threshold criterion does not require to set any parameter.
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.72336
+|      **[C.2]** Apparent Sensitivity = 0.72710
+|      **[C.3]** Apparent Specificity = 0.90398
+|
+```{r section_1.5.14, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion using the ROC curve point where
+# negative predictive value approximately equals
+# positive predictive value
+######################################
+ClassificationMetrics.Class0.LO.NPVEQUALPPV <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("NPVEqualPPV"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$NPVEqualPPV$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$NPVEqualPPV$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$NPVEqualPPV$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$NPVEqualPPV$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.NPVEQUALPPV <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("NPVEqualPPV"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$NPVEqualPPV$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$NPVEqualPPV$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$NPVEqualPPV$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$NPVEqualPPV$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.NPVEQUALPPV(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.NPVEQUALPPV",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+NPVEQUALPPV.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+NPVEQUALPPV.SUMMARY$ROCAUC <- as.numeric(as.character(NPVEQUALPPV.SUMMARY$ROCAUC))
+NPVEQUALPPV.SUMMARY$ApparentSensitivity <- as.numeric(as.character(NPVEQUALPPV.SUMMARY$ApparentSensitivity))
+NPVEQUALPPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(NPVEQUALPPV.SUMMARY$ApparentSpecificity))
+
+(NPVEQUALPPV.Threshold <- NPVEQUALPPV.SUMMARY$OptimalThreshold.NPVEQUALPPV)
+
+(NPVEQUALPPV.Sensitivity <- NPVEQUALPPV.SUMMARY$ApparentSensitivity)
+
+(NPVEQUALPPV.Specificity <- NPVEQUALPPV.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.15 Threshold Criterion Using Minimum P-Value (TC_MinPvalue)
+|
+| **[A]** The <span style="color: #0000FF">MinPvalue</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which minimizes the p-value associated with the statistical Chi-squared test which measures the association between the predictor and the binary result obtained on using the cut-point.
+|  
+| **[B]** The threshold criterion requires to set 1 parameter:
+|      **[B.1]** <span style="color: #FF0000">adjusted.pvalue</span> = method for adjusting the p-value value set at PADJMS (p-value adjustment using the method proposed by Miller and Siegmund)
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.00200
+|      **[C.2]** Apparent Sensitivity = 1.00000
+|      **[C.3]** Apparent Specificity = 0.08431
+|
+```{r section_1.5.15, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion which minimizes
+# the p-value associated with the statistical Chi-squared test 
+# which measures the association between the predictor and the 
+# binary result obtained on using the cut-point
+######################################
+ClassificationMetrics.Class0.LO.MINPVALUE <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinPvalue"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(adjusted.pvalue = "PADJMS"),
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinPvalue$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinPvalue$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinPvalue$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinPvalue$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.MINPVALUE <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("MinPvalue"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         control = control.cutpoints(adjusted.pvalue = "PADJMS"),
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$MinPvalue$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$MinPvalue$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$MinPvalue$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$MinPvalue$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.MINPVALUE(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.MINPVALUE",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+MINPVALUE.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+MINPVALUE.SUMMARY$ROCAUC <- as.numeric(as.character(MINPVALUE.SUMMARY$ROCAUC))
+MINPVALUE.SUMMARY$ApparentSensitivity <- as.numeric(as.character(MINPVALUE.SUMMARY$ApparentSensitivity))
+MINPVALUE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINPVALUE.SUMMARY$ApparentSpecificity))
+
+(MINPVALUE.Threshold <- MINPVALUE.SUMMARY$OptimalThreshold.MINPVALUE)
+
+(MINPVALUE.Sensitivity <- MINPVALUE.SUMMARY$ApparentSensitivity)
+
+(MINPVALUE.Specificity <- MINPVALUE.SUMMARY$ApparentSpecificity)
+
+```
+
+###  1.5.16 Threshold Criterion Using ROC Curve Point Closest to Observed Prevalence (TC_ObservedPrev)
+|
+| **[A]** The <span style="color: #0000FF">ObservedPrev</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applied the ROC curve point closest to the observed prevalence.
+|  
+| **[B]** The threshold criterion does not require to set any parameter.
+| 
+| **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.54821
+|      **[C.2]** Apparent Sensitivity = 0.84733
+|      **[C.3]** Apparent Specificity = 0.80796
+|
+```{r section_1.5.16, warning=FALSE, message=FALSE}
+######################################
+# Creating a function to gather the 
+# classification metrics applying the
+# threshold criterion using the point
+# with closest value to observed prevalence
+######################################
+ClassificationMetrics.Class0.LO.OBSERVEDPREV <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("ObservedPrev"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c("<"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$ObservedPrev$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+ClassificationMetrics.Class0.HI.OBSERVEDPREV <- function(SourceData,Response,Predictor){
+  ThresholdCriterion <- optimal.cutpoints(X = Predictor,
+                                         status = Response,
+                                         tag.healthy = "Low",
+                                         methods = c("ObservedPrev"),
+                                         data = SourceData,
+                                         pop.prev = NULL,
+                                         ci.fit = FALSE,
+                                         direction = c(">"))
+  
+  summary(ThresholdCriterion)
+  (OptimalThreshold <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$ObservedPrev$Global$measures.acc$AUC[1])
+  plot.optimal.cutpoints(ThresholdCriterion, 
+                         col=c("#5680E9"), 
+                         legend=FALSE, 
+                         which=1, 
+                         xlim=c(0,1), 
+                         ylim=c(0,1),
+                         lwd=8)
+  ClassificationMetricsList <-list(OptimalThreshold,
+                                   ThresholdSensitivity,
+                                   ThresholdSpecificity,
+                                   ThresholdROCAUC)
+  return(ClassificationMetricsList)
+}
+
+######################################
+# Gather the classification metrics 
+######################################
+OPTTH.List <- list()
+THSEN.List <- list()
+THSPE.List <- list()
+THAUC.List <- list()
+PREDI.List <- list()
+
+for (i in 7:7) {
+  Response.i  <- colnames(LR_Model_Predictions)[6]
+  Predictor.i <- colnames(LR_Model_Predictions)[i]
+  
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.OBSERVEDPREV(LR_Model_Predictions,
+                                                                    Response.i,
+                                                                    Predictor.i)
+  OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
+  THSEN.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[2],fmt='%#.5f')))
+  THSPE.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[3],fmt='%#.5f')))
+  THAUC.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[4],fmt='%#.5f')))
+  
+  PREDI.List <- append(PREDI.List,Predictor.i)
+  OPTTH.List <- append(OPTTH.List,OPTTH.i)
+  THSEN.List <- append(THSEN.List,THSEN.i)
+  THSPE.List <- append(THSPE.List,THSPE.i)
+  THAUC.List <- append(THAUC.List,THAUC.i)
+}
+
+ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
+                                       THAUC.List,
+                                       OPTTH.List,
+                                       THSEN.List,
+                                       THSPE.List
+)
+
+colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
+                                             "ROCAUC",
+                                             "OptimalThreshold.OBSERVEDPREV",
+                                             "ApparentSensitivity",
+                                             "ApparentSpecificity")
+
+OBSERVEDPREV.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+OBSERVEDPREV.SUMMARY$ROCAUC <- as.numeric(as.character(OBSERVEDPREV.SUMMARY$ROCAUC))
+OBSERVEDPREV.SUMMARY$ApparentSensitivity <- as.numeric(as.character(OBSERVEDPREV.SUMMARY$ApparentSensitivity))
+OBSERVEDPREV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(OBSERVEDPREV.SUMMARY$ApparentSpecificity))
+
+(OBSERVEDPREV.Threshold <- OBSERVEDPREV.SUMMARY$OptimalThreshold.OBSERVEDPREV)
+
+(OBSERVEDPREV.Sensitivity <- OBSERVEDPREV.SUMMARY$ApparentSensitivity)
+
+(OBSERVEDPREV.Specificity <- OBSERVEDPREV.SUMMARY$ApparentSpecificity)
+
+```
+
+##  1.6 Dichotomization Threshold Criterion Evaluation Summary
+|
+| Criterion performance comparison:
+|
+| **[A]** The dichotomization threshold criteria which supported a generally optimal classification performance considering the relative weights of sensitivity and specificity by demonstrating the best and most consistent metrics are as follows:
+|      **[A.1]** MaxProdSpSe with Apparent Sensitivity = 0.80153, Apparent Specificity = 0.87354
+|      **[A.2]** ROC01 with Apparent Sensitivity = 0.80153, Apparent Specificity = 0.87354
+|      **[A.3]** Youden with Apparent Sensitivity = 0.80153, Apparent Specificity = 0.87354
+|      **[A.4]** MaxEfficiency with Apparent Sensitivity = 0.80153, Apparent Specificity = 0.87354
+|      **[A.5]** MaxKappa with Apparent Sensitivity = 0.80153, Apparent Specificity = 0.87354
+|
+| **[B]** The dichotomization threshold criterion which supported a generally optimal classification performance considering the equal weights of sensitivity and specificity by demonstrating the best and most consistent metrics are as follows:
+|      **[B.1]** SpEqualSe with Apparent Sensitivity = 0.82634, Apparent Specificity = 0.82670
+|
+| **[C]** The dichotomization threshold criteria which supported a specifically optimal classification performance considering more weight on maintaining low false negative cases by demonstrating the best and most consistent metrics are as follows:
+|      **[C.1]** MinValueSe with Apparent Sensitivity = 0.90458, Apparent Specificity = 0.73536
+|      **[C.2]** MinValueNPV with Apparent Sensitivity = 0.94656, Apparent Specificity = 0.62763
+|
+| **[D]** The dichotomization threshold criteria which supported a specifically optimal classification performance considering more weight on maintaining low false positive cases by demonstrating the best and most consistent metrics are as follows:
+|      **[D.1]** MinValueSp with Apparent Sensitivity = 0.72710, Apparent Specificity = 0.90398
+|      **[D.2]** MinValuePPV with Apparent Sensitivity = 0.72710, Apparent Specificity = 0.90398
+|
+```{r section_1.6, warning=FALSE, message=FALSE}
+##################################
+# Consolidating all evaluation results
+# using the sensitivity and specificity metrics
+##################################
+Criterion <- c('MinValueSe','MinValueSp','MaxProdSpSe','ROC01','SpEqualSe',
+           'Youden','MaxEfficiency','Minimax','MaxDOR','MaxKappa',
+           'MinValueNPV','MinValuePPV','NPVEqualPPV','MinPvalue','ObservedPrev',
+           'MinValueSe','MinValueSp','MaxProdSpSe','ROC01','SpEqualSe',
+           'Youden','MaxEfficiency','Minimax','MaxDOR','MaxKappa',
+           'MinValueNPV','MinValuePPV','NPVEqualPPV','MinPvalue','ObservedPrev')
+
+Set <- c(rep('Apparent Sensitivity',15),rep('Apparent Specificity',15))
+
+ClassificationMetrics <- c(MINVALUESE.Sensitivity,MINVALUESP.Sensitivity,MAXPRODSPSE.Sensitivity,ROC01.Sensitivity,SPEQUALSE.Sensitivity,
+                 YOUDEN.Sensitivity,MAXEFFICIENCY.Sensitivity,MINIMAX.Sensitivity,MAXDOR.Sensitivity,MAXKAPPA.Sensitivity,
+                 MINVALUENPV.Sensitivity,MINVALUEPPV.Sensitivity,NPVEQUALPPV.Sensitivity,MINPVALUE.Sensitivity,OBSERVEDPREV.Sensitivity,
+                 MINVALUESE.Specificity,MINVALUESP.Specificity,MAXPRODSPSE.Specificity,ROC01.Specificity,SPEQUALSE.Specificity,
+                 YOUDEN.Specificity,MAXEFFICIENCY.Specificity,MINIMAX.Specificity,MAXDOR.Specificity,MAXKAPPA.Specificity,
+                 MINVALUENPV.Specificity,MINVALUEPPV.Specificity,NPVEQUALPPV.Specificity,MINPVALUE.Specificity,OBSERVEDPREV.Specificity)
+
+ClassificationMetrics_Summary <- as.data.frame(cbind(Criterion,Set,ClassificationMetrics))
+
+ClassificationMetrics_Summary$ClassificationMetrics <- as.numeric(as.character(ClassificationMetrics_Summary$ClassificationMetrics))
+ClassificationMetrics_Summary$Set <- factor(ClassificationMetrics_Summary$Set,
+                                        levels = c("Apparent Sensitivity",
+                                                   "Apparent Specificity"))
+ClassificationMetrics_Summary$Criterion <- factor(ClassificationMetrics_Summary$Criterion,
+                                        levels = c('MinValueSe',
+                                                   'MinValueSp',
+                                                   'MaxProdSpSe',
+                                                   'ROC01',
+                                                   'SpEqualSe',
+                                                   'Youden',
+                                                   'MaxEfficiency',
+                                                   'Minimax',
+                                                   'MaxDOR',
+                                                   'MaxKappa',
+                                                   'MinValueNPV',
+                                                   'MinValuePPV',
+                                                   'NPVEqualPPV',
+                                                   'MinPvalue',
+                                                   'ObservedPrev'))
+
+print(ClassificationMetrics_Summary, row.names=FALSE)
+
+(ClassificationMetrics_Plot <- dotplot(Criterion ~ ClassificationMetrics,
+                           data = ClassificationMetrics_Summary,
+                           groups = Set,
+                           main = "Dichotomization Threshold Criterion Performance Comparison",
+                           ylab = "Dichotomization Threshold Criterion",
+                           xlab = "Classification Performance",
+                           auto.key = list(adj = 1),
+                           type=c("p", "h"),       
+                           origin = 0,
+                           alpha = 0.45,
+                           pch = 16,
+                           cex = 2))
+
+```
+
+##  1.7 References
+|
+| **[Book]** [Applied Predictive Modeling](http://appliedpredictivemodeling.com/) by Max Kuhn and Kjell Johnson
+| **[Book]** [An Introduction to Statistical Learning](https://www.statlearning.com/) by Gareth James, Daniela Witten, Trevor Hastie and Rob Tibshirani
+| **[Book]** [Multivariate Data Visualization with R](http://lmdvr.r-forge.r-project.org/figures/figures.html) by Deepayan Sarkar
+| **[Book]** [Machine Learning](https://bookdown.org/ssjackson300/Machine-Learning-Lecture-Notes/) by Samuel Jackson
+| **[Book]** [Data Modeling Methods](https://bookdown.org/larget_jacob/data-modeling-methods/) by Jacob Larget
+| **[Book]** [Introduction to R and Statistics](https://saestatsteaching.tech/) by University of Western Australia
+| **[Book]** [Feature Engineering and Selection: A Practical Approach for Predictive Models](http://www.feat.engineering/index.html) by Max Kuhn and Kjell Johnson
+| **[Book]** [Introduction to Research Methods](https://bookdown.org/ejvanholm/Textbook/) by Eric van Holm
+| **[R Package]** [AppliedPredictiveModeling](https://cran.r-project.org/web//packages/AppliedPredictiveModeling/AppliedPredictiveModeling.pdf) by Max Kuhn
+| **[R Package]** [caret](https://topepo.github.io/caret/index.html) by Max Kuhn
+| **[R Package]** [rpart](https://mran.microsoft.com/web/packages/rpart/rpart.pdf) by Terry Therneau and Beth Atkinson
+| **[R Package]** [lattice](https://cran.r-project.org/web/packages/lattice/lattice.pdf) by  Deepayan Sarkar
+| **[R Package]** [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html/) by Hadley Wickham
+| **[R Package]** [moments](https://cran.r-project.org/web/packages/moments/index.html) by Lukasz Komsta and Frederick
+| **[R Package]** [skimr](https://cran.r-project.org/web/packages/skimr/skimr.pdf) by  Elin Waring
+| **[R Package]** [RANN](https://cran.r-project.org/web/packages/RANN/RANN.pdf) by  Sunil Arya, David Mount, Samuel Kemp and Gregory Jefferis
+| **[R Package]** [corrplot](https://cran.r-project.org/web/packages/corrplot/corrplot.pdf) by Taiyun Wei
+| **[R Package]** [tidyverse](https://cran.r-project.org/web/packages/tidyverse/tidyverse.pdf) by Hadley Wickham
+| **[R Package]** [lares](https://cran.rstudio.com/web/packages/lares/lares.pdf) by Bernardo Lares
+| **[R Package]** [DMwR](https://mran.microsoft.com/snapshot/2016-05-02/web/packages/DMwR/DMwR.pdf) by Luis Torgo
+| **[R Package]** [gridExtra](https://cran.r-project.org/web/packages/gridExtra/gridExtra.pdf) by Baptiste Auguie and Anton Antonov
+| **[R Package]** [rattle](https://cran.r-project.org/web/packages/rattle/rattle.pdf) by Graham Williams
+| **[R Package]** [rpart.plot](https://cran.r-project.org/web/packages/rpart.plot/rpart.plot.pdf) by Stephen Milborrow
+| **[R Package]** [RColorBrewer](https://cran.r-project.org/web//packages/RColorBrewer/RColorBrewer.pdf) by Erich Neuwirth
+| **[R Package]** [stats](https://search.r-project.org/R/refmans/stats/html/00Index.html) by R Core Team
+| **[R Package]** [pls](https://cran.r-project.org/web/packages/pls/pls.pdf) by Kristian Hovde Liland
+| **[R Package]** [nnet](https://cran.r-project.org/web/packages/nnet/nnet.pdf) by Brian Ripley
+| **[R Package]** [elasticnet](https://cran.r-project.org/web/packages/elasticnet/elasticnet.pdf) by Hui Zou
+| **[R Package]** [earth](https://cran.r-project.org/web/packages/earth/earth.pdf) by Stephen Milborrow
+| **[R Package]** [party](https://cran.r-project.org/web/packages/party/party.pdf) by Torsten Hothorn
+| **[R Package]** [kernlab](https://cran.r-project.org/web/packages/kernlab/kernlab.pdf) by Alexandros Karatzoglou
+| **[R Package]** [randomForest](https://cran.r-project.org/web/packages/randomForest/randomForest.pdf) by Andy Liaw
+| **[R Package]** [pROC](https://cran.r-project.org/web/packages/pROC/pROC.pdf) by Xavier Robin
+| **[R Package]** [mda](https://cran.r-project.org/web/packages/mda/mda.pdf) by Trevor Hastie
+| **[R Package]** [klaR](https://cran.r-project.org/web/packages/klaR/klaR.pdf) by Christian Roever, Nils Raabe, Karsten Luebke, Uwe Ligges, Gero Szepannek, Marc Zentgraf and David Meyer
+| **[R Package]** [pamr](https://cran.r-project.org/web/packages/pamr/pamr.pdf) by Trevor Hastie, Rob Tibshirani, Balasubramanian Narasimhan and Gil Chu
+| **[R Package]** [OptimalCutpoints](https://cran.r-project.org/web/packages/OptimalCutpoints/OptimalCutpoints.pdf) by Monica Lopez-Raton and Maria Xose Rodriguez-Alvarez
+| **[R Package]** [broom](https://cran.r-project.org/web/packages/broom/broom.pdf) by Simon Couch
+| **[R Package]** [PRROC](https://cran.r-project.org/web/packages/PRROC/PRROC.pdf) by Jan Grau and Jens Keilwagen
+| **[Article]** [The caret Package](https://topepo.github.io/caret/index.html) by Max Kuhn
+| **[Article]** [A Short Introduction to the caret Package](https://cran.r-project.org/web/packages/caret/vignettes/caret.html) by Max Kuhn
+| **[Article]** [Caret Package – A Practical Guide to Machine Learning in R](https://www.machinelearningplus.com/machine-learning/caret-package/#:~:text=Caret%20is%20short%20for%20Classification%20And%20REgression%20Training.,track%20of%20which%20algorithm%20resides%20in%20which%20package.) by Selva Prabhakaran
+| **[Article]** [Tuning Machine Learning Models Using the Caret R Package](https://machinelearningmastery.com/tuning-machine-learning-models-using-the-caret-r-package/) by Jason Brownlee
+| **[Article]** [Lattice Graphs](http://www.sthda.com/english/wiki/lattice-graphs) by Alboukadel Kassambara
+| **[Article]** [How to Select the Best Cutoff Point for the Problem Using ROC AUC Curve in R](https://www.projectpro.io/recipes/select-best-cutoff-point-for-problem-roc-auc-curve-r#mcetoc_1g4q3v8dnk) by Gautam Vermani
+| **[Article]** [Obtain Optimal Probability Threshold Using ROC](https://www.kaggle.com/code/nicholasgah/obtain-optimal-probability-threshold-using-roc) by Nicholas Law
+| **[Article]** [Beginners Guide To Understanding ROC Curve: How To Find The Perfect Probability Threshold](https://analyticsindiamag.com/beginners-guide-to-understanding-roc-curve-how-to-find-the-perfect-probability-threshold/) by Amal Nair
+| **[Article]** [ROC Curve](https://devopedia.org/roc-curve) by Devopedia Org Team
+| **[Article]** [ROC Curves – What Are They and How Are They Used?](https://acutecaretesting.org/en/articles/roc-curves-what-are-they-and-how-are-they-used) by Suzanne Ekelund
+| **[Article]** [Assessing and Comparing Classifier Performance with ROC Curves](https://machinelearningmastery.com/assessing-comparing-classifier-performance-roc-curves-2/) by Jason Brownlee
+| **[Article]** [What is a ROC Curve, and How Do You Use It in Performance Modeling?](https://www.simplilearn.com/what-is-a-roc-curve-and-how-to-use-it-in-performance-modeling-article) by John Terra
+| **[Article]** [AUC-ROC Curve](https://www.geeksforgeeks.org/auc-roc-curve/) by Geeks For Geeks Team
+| **[Article]** [Discrimination Threshold](https://www.scikit-yb.org/en/latest/api/classifier/threshold.html) by Scikit-Learn Team
+| **[Article]** [How to Interpret a ROC Curve (With Examples)](https://www.statology.org/interpret-roc-curve/) by Statology Team
+| **[Article]** [Evaluation of Classification Model Accuracy](http://www.sthda.com/english/articles/36-classification-methods-essentials/143-evaluation-of-classification-model-accuracy-essentials/) by Alboukadel Kassambara
+| **[Course]** [Applied Data Mining and Statistical Learning](https://online.stat.psu.edu/stat508/) by Penn State Eberly College of Science
+|
+|
+|
+|
