@@ -1,5 +1,5 @@
 ---
-title: 'R : Methods : Exploring Dichotomization Thresholding Strategies for Optimal Classification'
+title: 'R : Exploring Dichotomization Thresholding Strategies for Optimal Classification'
 author: "John Pauline Pineda"
 date: "February 4, 2023"
 output: 
@@ -2996,7 +2996,7 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
 (ClassificationMetrics_Plot <- dotplot(Criterion ~ ClassificationMetrics,
                            data = ClassificationMetrics_Summary,
                            groups = Set,
-                           main = "Dichotomization Threshold Criterion Performance Comparison",
+                           main = "Dichotomization Threshold Criteria Performance Comparison",
                            ylab = "Dichotomization Threshold Criterion",
                            xlab = "Classification Performance",
                            auto.key = list(adj = 1),
