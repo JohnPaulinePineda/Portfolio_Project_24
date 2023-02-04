@@ -27,10 +27,10 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
 | **[A]** 951 rows (observations)
 |      **[A.1]** Train Set = 951 observations
 | 
-| **[B]** 229 columns (variables)
-|      **[B.1]** 1/4 response = <span style="color: #FF0000">Log_Solubility_Class</span> variable (factor)
+| **[B]** 5 columns (variables)
+|      **[B.1]** 1/5 response = <span style="color: #FF0000">Log_Solubility_Class</span> variable (factor)
 |             **[B.1.1]** Levels = <span style="color: #FF0000">Log_Solubility_Class=Low</span> < <span style="color: #FF0000">Log_Solubility_Class=High</span>
-|      **[B.2]** 3/4 predictors = All remaining variables (0/3 factor + 3/3 numeric)
+|      **[B.2]** 4/5 predictors = All remaining variables (0/4 factor + 4/4 numeric)
 |     
 | 
 ```{r section_1.1, warning=FALSE, message=FALSE}
@@ -357,7 +357,8 @@ if (length(names(DQA.Predictors.Numeric))==0) {
 | **[A]** Outliers noted for 3 variables  with the numeric data visualized through a boxplot including observations classified as suspected outliers using the IQR criterion. The IQR criterion means that all observations above the (75th percentile + 1.5 x IQR) or below the (25th percentile - 1.5 x IQR) are suspected outliers, where IQR is the difference between the third quartile (75th percentile) and first quartile (25th percentile). Outlier treatment for numerical stability remains optional depending on potential model requirements for the subsequent steps.
 |      **[A.1]** <span style="color: #FF0000">MolWeight</span> variable (8 outliers detected)
 |      **[A.2]** <span style="color: #FF0000">NumCarbon</span> variable (35 outliers detected)
-|      **[A.3]** <span style="color: #FF0000">NumBonds</span> variable (51 outliers detected)
+|      **[A.3]** <span style="color: #FF0000">NumHalogen</span> variable (99 outliers detected)
+|      **[A.4]** <span style="color: #FF0000">hydrophilicFactor</span> variable (53 outliers detected)
 |
 ```{r section_1.3.1, warning=FALSE, message=FALSE, fig.width=15, fig.height=3}
 ##################################
@@ -667,10 +668,10 @@ if (DPA_LinearlyDependentCount > 0) {
 | **[A]** 951 rows (observations)
 |      **[A.1]** Train Set = 951 observations
 | 
-| **[B]** 4 columns (variables)
-|      **[B.1]** 1/4 response = <span style="color: #FF0000">Log_Solubility_Class</span> variable (factor)
+| **[B]** 5 columns (variables)
+|      **[B.1]** 1/5 response = <span style="color: #FF0000">Log_Solubility_Class</span> variable (factor)
 |             **[B.1.1]** Levels = <span style="color: #FF0000">Log_Solubility_Class=Low</span> < <span style="color: #FF0000">Log_Solubility_Class=High</span>
-|      **[B.2]** 3/4 predictors = All remaining variables (0/3 factor + 3/3 numeric)
+|      **[B.2]** 4/5 predictors = All remaining variables (0/4 factor + 4/4 numeric)
 | 
 | **[C]** Pre-processing actions applied:
 |      **[C.1]** No predictors removed due to zero or near-zero variance, high correlation or linear dependencies 
@@ -702,7 +703,8 @@ dim(PMA_PreModelling_Train)
 | **[A]** All numeric variables demonstrated differential relationships with the <span style="color: #FF0000">Log_Solubility_Class</span> response variable:
 |      **[A.1]** <span style="color: #FF0000">MolWeight</span> variable (numeric)
 |      **[A.2]** <span style="color: #FF0000">NumCarbon</span> variable (numeric)
-|      **[A.3]** <span style="color: #FF0000">NumBonds</span> variable (numeric)
+|      **[A.3]** <span style="color: #FF0000">NumHalogen</span> variable (numeric)
+|      **[A.4]** <span style="color: #FF0000">HydrophilicFactor</span> variable (numeric)
 |
 ```{r section_1.4, warning=FALSE, message=FALSE}
 ##################################
@@ -739,7 +741,7 @@ featurePlot(x = EDA.Predictors.Numeric,
 
 ###  1.5.1 Logistic Regression Model Index and Probability Curve Estimation
 |
-| **[A]** The logistic regression model from both the <mark style="background-color: #CCECFF">**stats**</mark> and <mark style="background-color: #CCECFF">**caret**</mark> packages was implemented. 
+| **[A]** The logistic regression model from both the <mark style="background-color: #CCECFF">**stats**</mark> and <mark style="background-color: #CCECFF">**caret**</mark> packages was implemented. The <span style="color: #FF0000">Log_Solubility_Class</span> response was regressed against the <span style="color: #FF0000">MolWeight</span>, <span style="color: #FF0000">NumCarbon</span>, <span style="color: #FF0000">NumHalogen</span> and <span style="color: #FF0000">HydrophilicFactor</span> predictors.
 |
 | **[B]** The logistic curve was formulated by plotting the predicted probabilities against the classification index using the logit values.
 |
@@ -758,7 +760,7 @@ featurePlot(x = EDA.Predictors.Numeric,
 ```{r section_1.5.1, warning=FALSE, message=FALSE}
 ##################################
 # Creating a local object
-# for the train and test sets
+# for the train set
 ##################################
 PMA_PreModelling_Train_LR <- PMA_PreModelling_Train
 
@@ -808,6 +810,10 @@ LR_Model_Predictions$LR_LP   <- log(LR_Model_Predictions$LR_Prob/(1-LR_Model_Pre
                                                   "lower",
                                                   "upper")])
 
+##################################
+# Winsorizing confidence interval values
+# beyond the 0 and 1 range
+##################################
 LR_Model_Predictions$LR_LCL <- ifelse(LR_Model_Predictions$LR_LCL<0.000,0.001,
                                       LR_Model_Predictions$LR_LCL)
 LR_Model_Predictions$LR_UCL <- ifelse(LR_Model_Predictions$LR_UCL>0.995,0.999,
@@ -842,7 +848,7 @@ LR_Model_Predictions %>%
 
 ##################################
 # Formulating the corresponding
-# receiver operating characteristic (ROC)
+# receiver operating characteristic (ROC) curve
 # using the model predictions
 ##################################
 LR_Prob_Low  <- LR_Model_Predictions[LR_Model_Predictions$Log_Solubility_Class=="Low",
@@ -863,7 +869,7 @@ plot(LR_Model_Prob_ROC,
 
 ##################################
 # Formulating the corresponding
-# receiver operating characteristic (ROC)
+# receiver operating characteristic (ROC) curve
 # using the classification index
 ##################################
 LR_LP_Low  <- LR_Model_Predictions[LR_Model_Predictions$Log_Solubility_Class=="Low",
