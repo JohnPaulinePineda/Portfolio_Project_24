@@ -743,6 +743,8 @@ featurePlot(x = EDA.Predictors.Numeric,
 
 ###  1.5.1 Logistic Regression Model Index and Probability Curve Estimation
 |
+| [Logistic Regression](http://dx.doi.org/10.2139/ssrn.360300) models the relationship between the probability of an event (among two outcome levels) by having the log-odds of the event be a linear combination of a set of predictors weighted by their respective parameter estimates. The parameters are estimated via maximum likelihood estimation by testing different values through multiple iterations to optimize for the best fit of log odds. All of these iterations produce the log likelihood function, and logistic regression seeks to maximize this function to find the best parameter estimates. Given the optimal parameters, the conditional probabilities for each observation can be calculated, logged, and summed together to yield a predicted probability.
+|
 | **[A]** The logistic regression model from both the <mark style="background-color: #CCECFF">**stats**</mark> and <mark style="background-color: #CCECFF">**caret**</mark> packages was implemented. The <span style="color: #FF0000">Log_Solubility_Class</span> response was regressed against the <span style="color: #FF0000">MolWeight</span>, <span style="color: #FF0000">NumCarbon</span>, <span style="color: #FF0000">NumHalogen</span> and <span style="color: #FF0000">HydrophilicFactor</span> predictors.
 |
 | **[B]** The logistic curve was formulated by plotting the predicted probabilities against the classification index using the logit values.
@@ -3103,6 +3105,7 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
 | **[Article]** [Discrimination Threshold](https://www.scikit-yb.org/en/latest/api/classifier/threshold.html) by Scikit-Learn Team
 | **[Article]** [How to Interpret a ROC Curve (With Examples)](https://www.statology.org/interpret-roc-curve/) by Statology Team
 | **[Article]** [Evaluation of Classification Model Accuracy](http://www.sthda.com/english/articles/36-classification-methods-essentials/143-evaluation-of-classification-model-accuracy-essentials/) by Alboukadel Kassambara
+| **[Publication]** [The Origins of Logistic Regression](http://dx.doi.org/10.2139/ssrn.360300) by JS Cramer (Econometrics eJournal)
 | **[Publication]** [Constructing a Cut-off Point for a Quntitative Diagnostic Test](https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110) by Helmut Schaefer (Statistics in Medicine)
 | **[Publication]** [Use of the Noninvasive Components of the Mayo Score to Assess Clinical Response in Ulcerative Colitis](https://academic.oup.com/ibdjournal/article/14/12/1660/4654949) by James Lewis, Shaokun Chuai, Lisa Nessel, Gary Lichtenstein, Faten Aberra and Jonas Ellenberg (Inflammatory Bowel Diseases)
 | **[Publication]** [Basic Principles of ROC Analysis](https://www.sciencedirect.com/science/article/abs/pii/S0001299878800142?via%3Dihub) by Charles Metz (Seminars in Nuclear Medicine) 
