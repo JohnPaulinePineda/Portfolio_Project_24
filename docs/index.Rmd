@@ -1758,6 +1758,8 @@ YOUDEN.SUMMARY$ApparentSpecificity <- as.numeric(as.character(YOUDEN.SUMMARY$App
 
 ###  1.5.8 Threshold Criterion Using Maximum Efficiency (TC_MaxEfficiency)
 |
+| [TC_MaxEfficiency](https://europepmc.org/article/MED/15622737) is a threshold criterion based on maximization of the Efficiency, Accuracy, Validity Index or percentage of cases correctly classified. This criterion is similar to the criterion based on minimization of the Misclassification Rate which measures the error in cases where diseased and disease-free patients are misdiagnosed.
+|
 | **[A]** The <span style="color: #0000FF">MaxEfficiency</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which maximizes the efficiency or minimizes error rate.
 |  
 | **[B]** The threshold criterion requires to set 1 parameter:
@@ -1891,6 +1893,8 @@ MAXEFFICIENCY.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXEFFICIEN
 
 ###  1.5.9 Threshold Criterion Using Minimization of Most Frequent Error (TC_Minimax)
 |
+| [TC_Minimax](https://www.jstor.org/stable/2347839?origin=crossref) is a threshold criterion based on minimization of the most frequent error. In a case where there is more than one cutpoint fulfilling this condition, those which yield maximum Sensitivity or maximum Specificity are chosen.
+|
 | **[A]** The <span style="color: #0000FF">Minimax</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which minimizes the most frequent error.
 |  
 | **[B]** The threshold criterion does not require to set any parameter.
@@ -2020,6 +2024,8 @@ MINIMAX.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINIMAX.SUMMARY$A
 ```
 
 ###  1.5.10 Threshold Criterion Using Maximum Diagnostic Odds Ratio (TC_MaxDOR)
+|
+| [TC_MaxDOR](https://us.sagepub.com/en-us/nam/evaluating-medical-tests/book3306) is a threshold criterion based on maximizing the Diagnostic Odds Ratio (DOR).
 |
 | **[A]** The <span style="color: #0000FF">MaxDOR</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which maximizes the Diagnostic Odds Ratio.
 |  
