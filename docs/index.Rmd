@@ -18,6 +18,8 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
 |
 | This document presents a non-exhaustive list of dichotomization thresholding strategies applied to optimize classification performance using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>.    
 |
+| Dichotomization thresholding process is a method applied during classification model development aimed at selecting a cutpoint to define the positive and negative categories from a numeric input. The criteria applied in this study (mostly contained in the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package) attempt to implement various approaches for selecting optimal thresholds under various objectives including methods based on standard diagnostic test accuracy measures (Sensitivity, Specificity, Predictive Values and Diagnostic Likelihood Ratios) and cost-benefit analysis, among others.
+|
 ##  1.1 Sample Data
 |
 | The <mark style="background-color: #EEEEEE;color: #FF0000">**Solubility**</mark>  dataset from the  <mark style="background-color: #CCECFF">**AppliedPredictiveModeling**</mark> package was used for this illustrated example. The original numeric response was transformed to simulate a dichotomous categorical variable. Other original predictors were removed from the dataset leaving only a subset of numeric predictors used during the analysis. 
