@@ -953,6 +953,8 @@ plot(LR_VarImp,
 
 ###  1.5.2 Threshold Criterion Using Minimum Sensitivity (TC_MinValueSe)
 |
+| [TC_MinValueSe](https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110) is a threshold criterion based on setting a minimum value for Sensitivity and maximizing Specificity, subject to this condition. Hence, in a case where there is more than one cutpoint fulfilling this condition, those which yield maximum Specificity are chosen. If several cutpoints still remain, those yielding the greatest Sensitivity are chosen.
+|
 | **[A]** The <span style="color: #0000FF">MinValueSe</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies a minimum value set for sensitivity.
 |  
 | **[B]** The threshold criterion requires to set 1 parameter:
