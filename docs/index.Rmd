@@ -2291,6 +2291,8 @@ MAXKAPPA.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXKAPPA.SUMMARY
 
 ###  1.5.12 Threshold Criterion Using Minimum Negative Predictive Value (TC_MinValueNPV)
 |
+| [TC_MinValueNPV](https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub) is a threshold criterion based on setting a minimum value for Negative Predictive Value. In a case where there is more than one cutpoint fulfilling this condition, those which yield the maximum Positive Predictive Value are chosen. If several cutpoints still remain, those yielding the highest Negative Predictive Value are chosen..
+|
 | **[A]** The <span style="color: #0000FF">MinValueNPV</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies a minimum value set for negative predictive value.
 |  
 | **[B]** The threshold criterion requires to set 1 parameter:
