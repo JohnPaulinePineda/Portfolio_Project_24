@@ -1223,6 +1223,8 @@ MINVALUESP.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUESP.SUM
 
 ###  1.5.4 Threshold Criterion Using Maximum Product of Specificity and Sensitivity (TC_MaxProdSpSe)
 |
+| [TC_MaxProdSpSe](https://academic.oup.com/ibdjournal/article/14/12/1660/4654949) is a threshold criterion based on maximizing the product of Specificity and Sensitivity, which is the same as the method based on maximization of the Accuracy Area.
+|
 | **[A]** The <span style="color: #0000FF">MaxProdSpSe</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which maximizes the product of specificity and sensitivity or accuracy area.
 |  
 | **[B]** The threshold criterion does not require to set any parameter.
