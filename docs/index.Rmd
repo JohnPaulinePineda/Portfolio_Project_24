@@ -1356,6 +1356,8 @@ MAXPRODSPSE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXPRODSPSE.S
 
 ###  1.5.5 Threshold Criterion Using ROC Curve Point Closest to Point (0,1) (TC_ROC01)
 |
+| [TC_ROC01](https://www.sciencedirect.com/science/article/abs/pii/S0001299878800142?via%3Dihub) is a threshold criterion based on the point on the ROC curve closest to the point (0,1), which refers to the upper leftmost corner of the unit square.
+|
 | **[A]** The <span style="color: #0000FF">ROC01</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which minimizes the distance between the ROC plot and point (0,1).
 |  
 | **[B]** The threshold criterion does not require to set any parameter.
