@@ -3071,19 +3071,18 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
 | **[Article]** [Discrimination Threshold](https://www.scikit-yb.org/en/latest/api/classifier/threshold.html) by Scikit-Learn Team
 | **[Article]** [How to Interpret a ROC Curve (With Examples)](https://www.statology.org/interpret-roc-curve/) by Statology Team
 | **[Article]** [Evaluation of Classification Model Accuracy](http://www.sthda.com/english/articles/36-classification-methods-essentials/143-evaluation-of-classification-model-accuracy-essentials/) by Alboukadel Kassambara
-| **[Publication]** [Constructing a Cut-off Point for a Quntitative Diagnostic Test](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Author (Conference_Journal)
-| **[Publication]** [Use of the Noninvasive Components of the Mayo Score to Assess Clinical Response in Ulcerative Colitis](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Schaefer (Conference_Journal)
-| **[Publication]** [Progress in Evaluation of Human Observer Visual Detection Performance using the ROC Curve Approach](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Lewis (Conference_Journal)
-| **[Publication]** [Basic Principles of ROC Analysis](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Metz (Conference_Journal)
+| **[Publication]** [Constructing a Cut-off Point for a Quntitative Diagnostic Test](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Schaefer (Statistics in Medicine)
+| **[Publication]** [Use of the Noninvasive Components of the Mayo Score to Assess Clinical Response in Ulcerative Colitis](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Lewis (Inflammatory Bowel Diseases)
+| **[Publication]** [Basic Principles of ROC Analysis](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Metz (Seminars in Nuclear Medicine) 
 | **[Publication]** [Principals and Practical Application of the Receiver Operating Characteristic Analysis for Diagnostic Tests](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Greiner (Conference_Journal)
-| **[Publication]** [Index for Rating Diagnostic Tests.](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Youden (Conference_Journal)
-| **[Publication]** [The Accuracy of Diver Sound Localization by Pointing](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Feinstein (Conference_Journal)
-| **[Publication]** [Screening Versus Prevalence Estimation](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Hand (Conference_Journal)
-| **[Publication]** [Risk Ratios, Odds Ratio and the Test QROC](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Kraemer (Conference_Journal)
-| **[Publication]** [A Coefficient of Agreement for Nominal Scales](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Cohen (Conference_Journal)
-| **[Publication]** [Strategies for Graphical Threshold Determination](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Vermont (Conference_Journal)
-| **[Publication]** [Maximally Selected Chi-Square Statistics](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Miller and Siegmund (Conference_Journal)
-| **[Publication]** [Evaluating Presence-Absence Models in Ecology: The Need to Account for Prevalence](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Manel and Siegmund (Conference_Journal)
+| **[Publication]** [Index for Rating Diagnostic Tests.](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Youden (Cancer)
+| **[Publication]** [The Accuracy of Diver Sound Localization by Pointing](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Feinstein (Undersea Biomedical Research)
+| **[Publication]** [Screening Versus Prevalence Estimation](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Hand (Applied Statistics)
+| **[Publication]** [Risk Ratios, Odds Ratio and the Test QROC](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Kraemer (SAGE Publications)
+| **[Publication]** [A Coefficient of Agreement for Nominal Scales](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Cohen (Educational Psycholofy Measurement)
+| **[Publication]** [Strategies for Graphical Threshold Determination](https://epubs.siam.org/doi/10.1137/1.9781611972733.5) by Vermont (Computer Methods and Programs in Biomedicine)
+| **[Publication]** [Maximally Selected Chi-Square Statistics](https://www.jstor.org/stable/2529881?origin=crossref) by Rupert Miller and David Siegmund (Biometrics)
+| **[Publication]** [Evaluating Presence-Absence Models in Ecology: The Need to Account for Prevalence](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1046/j.1365-2664.2001.00647.x) by Stephanie Manel (Journal of Applied Ecology)
 | **[Course]** [Applied Data Mining and Statistical Learning](https://online.stat.psu.edu/stat508/) by Penn State Eberly College of Science
 |
 |
