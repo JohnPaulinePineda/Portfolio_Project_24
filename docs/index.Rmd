@@ -1088,6 +1088,8 @@ MINVALUESE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUESE.SUM
 
 ###  1.5.3 Threshold Criterion Using Minimum Specificity (TC_MinValueSp)
 |
+| [TC_MinValueSp](https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110) is a threshold criterion based on setting a minimum value for Specificity and maximizing Sensitivity, subject to this condition. Hence, in a case where there is more than one cutpoint fulfilling this condition, those which yield maximum Sensitivity are chosen. If several cutpoints still remain, those yielding the greatest Specificity are chosen.
+|
 | **[A]** The <span style="color: #0000FF">MinValueSp</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies a minimum value set for specificity.
 |  
 | **[B]** The threshold criterion requires to set 1 parameter:
