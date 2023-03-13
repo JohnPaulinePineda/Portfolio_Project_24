@@ -2561,7 +2561,7 @@ MINVALUEPPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUEPPV.S
 
 ###  1.5.14 Threshold Criterion Using Negative Equals Positive Predictive Values (TC_NPVEqualPPV)
 |
-| [TC_NPVEqualPP](https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub) is a threshold criterion based on setting minimum values for Predictive Values. In a case where there is more than one cutpoint fulfilling these conditions, those which yield the maximum Negative or maximum Positive Predictive Value are chosen.
+| [TC_NPVEqualPPV](https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub) is a threshold criterion based on setting minimum values for Predictive Values. In a case where there is more than one cutpoint fulfilling these conditions, those which yield the maximum Negative or maximum Positive Predictive Value are chosen.
 |
 | **[A]** The <span style="color: #0000FF">NPVEqualPPV</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applied the ROC curve point where NPV approximately equals PPV.
 |  
@@ -2693,6 +2693,8 @@ NPVEQUALPPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(NPVEQUALPPV.S
 ```
 
 ###  1.5.15 Threshold Criterion Using Minimum P-Value (TC_MinPvalue)
+|
+| [TC_MinPvalue](https://www.jstor.org/stable/2529881?origin=crossref) is a threshold criterion based on the minimum p-value associated with the statistical Chi-squared test which measures the association between the marker and the binary result obtained on using the cutpoint.
 |
 | **[A]** The <span style="color: #0000FF">MinPvalue</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which minimizes the p-value associated with the statistical Chi-squared test which measures the association between the predictor and the binary result obtained on using the cut-point.
 |  
