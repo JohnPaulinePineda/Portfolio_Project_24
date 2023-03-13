@@ -1620,6 +1620,8 @@ SPEQUALSE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(SPEQUALSE.SUMMA
 
 ###  1.5.7 Threshold Criterion Using Youden's Index (TC_Youden)
 |
+| [TC_Youden](https://acsjournals.onlinelibrary.wiley.com/doi/pdf/10.1002/1097-0142%281950%293%3A1%3C32%3A%3AAID-CNCR2820030106%3E3.0.CO%3B2-3) is a threshold criterion based on Youden’s Index which is computed as the maximum of the sum of Sensitivity and Specificity subtracted by 1. This is identical from an optimization point of view to the method that maximizes the sum of Sensitivity and Specificity and to the criterion that maximizes concordance, which is a monotone function of the AUC.
+|
 | **[A]** The <span style="color: #0000FF">Youden</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applies the Youden Index.
 |  
 | **[B]** The threshold criterion requires to set 2 parameters:
