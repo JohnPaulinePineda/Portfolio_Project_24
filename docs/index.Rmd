@@ -2157,6 +2157,8 @@ MAXDOR.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXDOR.SUMMARY$App
 
 ###  1.5.11 Threshold Criterion Using Maximum Kappa (TC_MaxKappa)
 |
+| [TC_MaxKappa](https://journals.sagepub.com/doi/10.1177/001316446002000104) is a threshold criterion based on maximization of the Kappa Index which makes full use of the information in the confusion matrix to assess the improvement over chance prediction.
+|
 | **[A]** The <span style="color: #0000FF">MaxKappa</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which maximizes the Kappa Index.
 |  
 | **[B]** The threshold criterion does not require to set any parameter.
