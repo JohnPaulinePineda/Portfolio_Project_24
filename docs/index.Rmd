@@ -1488,6 +1488,8 @@ ROC01.SUMMARY$ApparentSpecificity <- as.numeric(as.character(ROC01.SUMMARY$Appar
 
 ###  1.5.6 Threshold Criterion Using Sensitivity Equals Specificity (TC_SpEqualSe)
 |
+| [TC_SpEqualSe](https://www.sciencedirect.com/science/article/abs/pii/002217599500078O) is a threshold criterion based on the equality of Sensitivity and Specificity. Since Specificity may not be exactly equal to Sensitivity, the absolute value of the difference between them is minimized.
+|
 | **[A]** The <span style="color: #0000FF">SpEqualSe</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was applies the ROC curve point where specificity approximately equals sensitivity.
 |  
 | **[B]** The threshold criterion does not require to set any parameter.
