@@ -4003,13 +4003,13 @@ as follows:<br />
 <h3>1.5.2 Threshold Criterion Using Minimum Sensitivity
 (TC_MinValueSe)</h3>
 <div class="line-block"><br />
-<a href="https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110">TC_MinValueSe</a>
-is a threshold criterion based on setting a minimum value for
-Sensitivity and maximizing Specificity, subject to this condition.
-Hence, in a case where there is more than one cutpoint fulfilling this
-condition, those which yield maximum Specificity are chosen. If several
-cutpoints still remain, those yielding the greatest Sensitivity are
-chosen.<br />
+<a href="https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110">Minimum
+Sensitivity</a> is a threshold criterion based on setting a minimum
+value for Sensitivity and maximizing Specificity, subject to this
+condition. Hence, in a case where there is more than one cutpoint
+fulfilling this condition, those which yield maximum Specificity are
+chosen. If several cutpoints still remain, those yielding the greatest
+Sensitivity are chosen.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MinValueSe</span>
 threshold criterion from the
@@ -4154,13 +4154,13 @@ follows:<br />
 <h3>1.5.3 Threshold Criterion Using Minimum Specificity
 (TC_MinValueSp)</h3>
 <div class="line-block"><br />
-<a href="https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110">TC_MinValueSp</a>
-is a threshold criterion based on setting a minimum value for
-Specificity and maximizing Sensitivity, subject to this condition.
-Hence, in a case where there is more than one cutpoint fulfilling this
-condition, those which yield maximum Sensitivity are chosen. If several
-cutpoints still remain, those yielding the greatest Specificity are
-chosen.<br />
+<a href="https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110">Minimum
+Specificity</a> is a threshold criterion based on setting a minimum
+value for Specificity and maximizing Sensitivity, subject to this
+condition. Hence, in a case where there is more than one cutpoint
+fulfilling this condition, those which yield maximum Sensitivity are
+chosen. If several cutpoints still remain, those yielding the greatest
+Specificity are chosen.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MinValueSp</span>
 threshold criterion from the
@@ -4305,10 +4305,11 @@ follows:<br />
 <h3>1.5.4 Threshold Criterion Using Maximum Product of Specificity and
 Sensitivity (TC_MaxProdSpSe)</h3>
 <div class="line-block"><br />
-<a href="https://academic.oup.com/ibdjournal/article/14/12/1660/4654949">TC_MaxProdSpSe</a>
-is a threshold criterion based on maximizing the product of Specificity
-and Sensitivity, which is the same as the method based on maximization
-of the Accuracy Area.<br />
+<a href="https://academic.oup.com/ibdjournal/article/14/12/1660/4654949">Maximum
+Product of Specificity and Sensitivity</a> is a threshold criterion
+based on the optimally highest product of Specificity and Sensitivity,
+which is the same as the method based on maximization of the Accuracy
+Area.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MaxProdSpSe</span>
 threshold criterion from the
@@ -4450,10 +4451,9 @@ follows:<br />
 <h3>1.5.5 Threshold Criterion Using ROC Curve Point Closest to Point
 (0,1) (TC_ROC01)</h3>
 <div class="line-block"><br />
-<a href="https://www.sciencedirect.com/science/article/abs/pii/S0001299878800142?via%3Dihub">TC_ROC01</a>
-is a threshold criterion based on the point on the ROC curve closest to
-the point (0,1), which refers to the upper leftmost corner of the unit
-square.<br />
+<a href="https://www.sciencedirect.com/science/article/abs/pii/S0001299878800142?via%3Dihub">ROC
+Curve Point Closest to Point (0,1)</a> is a threshold criterion which
+refers to the upper leftmost corner of the unit square.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">ROC01</span>
 threshold criterion from the
@@ -4594,10 +4594,11 @@ follows:<br />
 <h3>1.5.6 Threshold Criterion Using Sensitivity Equals Specificity
 (TC_SpEqualSe)</h3>
 <div class="line-block"><br />
-<a href="https://www.sciencedirect.com/science/article/abs/pii/002217599500078O">TC_SpEqualSe</a>
-is a threshold criterion based on the equality of Sensitivity and
-Specificity. Since Specificity may not be exactly equal to Sensitivity,
-the absolute value of the difference between them is minimized.<br />
+<a href="https://www.sciencedirect.com/science/article/abs/pii/002217599500078O">Sensitivity
+Equals Specificity</a> is a threshold criterion based on the equality of
+Sensitivity and Specificity. Since Specificity may not be exactly equal
+to Sensitivity, the absolute value of the difference between them is
+minimized.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">SpEqualSe</span>
 threshold criterion from the
@@ -4737,7 +4738,7 @@ follows:<br />
 <div id="threshold-criterion-using-youdens-index-tc_youden" class="section level3">
 <h3>1.5.7 Threshold Criterion Using Youden’s Index (TC_Youden)</h3>
 <div class="line-block"><br />
-<a href="https://acsjournals.onlinelibrary.wiley.com/doi/pdf/10.1002/1097-0142%281950%293%3A1%3C32%3A%3AAID-CNCR2820030106%3E3.0.CO%3B2-3">TC_Youden</a>
+<a href="https://acsjournals.onlinelibrary.wiley.com/doi/pdf/10.1002/1097-0142%281950%293%3A1%3C32%3A%3AAID-CNCR2820030106%3E3.0.CO%3B2-3">Youden</a>
 is a threshold criterion based on Youden’s Index which is computed as
 the maximum of the sum of Sensitivity and Specificity subtracted by 1.
 This is identical from an optimization point of view to the method that
@@ -4893,12 +4894,12 @@ follows:<br />
 <h3>1.5.8 Threshold Criterion Using Maximum Efficiency
 (TC_MaxEfficiency)</h3>
 <div class="line-block"><br />
-<a href="https://europepmc.org/article/MED/15622737">TC_MaxEfficiency</a>
-is a threshold criterion based on maximization of the Efficiency,
-Accuracy, Validity Index or percentage of cases correctly classified.
-This criterion is similar to the criterion based on minimization of the
-Misclassification Rate which measures the error in cases where diseased
-and disease-free patients are misdiagnosed.<br />
+<a href="https://europepmc.org/article/MED/15622737">Maximum
+Efficiency</a> is a threshold criterion based on maximization of the
+Efficiency, Accuracy, Validity Index or percentage of cases correctly
+classified. This criterion is similar to the criterion based on
+minimization of the Misclassification Rate which measures the error in
+cases where diseased and disease-free patients are misdiagnosed.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MaxEfficiency</span> threshold criterion from the
 <mark style="background-color: #CCECFF"><strong>OptimalCutpoints</strong></mark>
@@ -5043,11 +5044,11 @@ follows:<br />
 <h3>1.5.9 Threshold Criterion Using Minimization of Most Frequent Error
 (TC_Minimax)</h3>
 <div class="line-block"><br />
-<a href="https://www.jstor.org/stable/2347839?origin=crossref">TC_Minimax</a>
-is a threshold criterion based on minimization of the most frequent
-error. In a case where there is more than one cutpoint fulfilling this
-condition, those which yield maximum Sensitivity or maximum Specificity
-are chosen.<br />
+<a href="https://www.jstor.org/stable/2347839?origin=crossref">Minimization
+of Most Frequent Error</a> is a threshold criterion based on the
+optimally lowest most frequent error. In a case where there is more than
+one cutpoint fulfilling this condition, those which yield maximum
+Sensitivity or maximum Specificity are chosen.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">Minimax</span>
 threshold criterion from the
@@ -5187,9 +5188,9 @@ follows:<br />
 <h3>1.5.10 Threshold Criterion Using Maximum Diagnostic Odds Ratio
 (TC_MaxDOR)</h3>
 <div class="line-block"><br />
-<a href="https://us.sagepub.com/en-us/nam/evaluating-medical-tests/book3306">TC_MaxDOR</a>
-is a threshold criterion based on maximizing the Diagnostic Odds Ratio
-(DOR).<br />
+<a href="https://us.sagepub.com/en-us/nam/evaluating-medical-tests/book3306">Maximum
+Diagnostic Odds Ratio</a> is a threshold criterion based on the
+optimally highest Diagnostic Odds Ratio (DOR).<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MaxDOR</span>
 threshold criterion from the
@@ -5328,10 +5329,10 @@ follows:<br />
 <div id="threshold-criterion-using-maximum-kappa-tc_maxkappa" class="section level3">
 <h3>1.5.11 Threshold Criterion Using Maximum Kappa (TC_MaxKappa)</h3>
 <div class="line-block"><br />
-<a href="https://journals.sagepub.com/doi/10.1177/001316446002000104">TC_MaxKappa</a>
-is a threshold criterion based on maximization of the Kappa Index which
-makes full use of the information in the confusion matrix to assess the
-improvement over chance prediction.<br />
+<a href="https://journals.sagepub.com/doi/10.1177/001316446002000104">Maximum
+Kappa</a> is a threshold criterion based on the optimally highest Kappa
+Index which makes full use of the information in the confusion matrix to
+assess the improvement over chance prediction.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MaxKappa</span>
 threshold criterion from the
@@ -5473,12 +5474,13 @@ follows:<br />
 <h3>1.5.12 Threshold Criterion Using Minimum Negative Predictive Value
 (TC_MinValueNPV)</h3>
 <div class="line-block"><br />
-<a href="https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub">TC_MinValueNPV</a>
-is a threshold criterion based on setting a minimum value for Negative
-Predictive Value. In a case where there is more than one cutpoint
-fulfilling this condition, those which yield the maximum Positive
-Predictive Value are chosen. If several cutpoints still remain, those
-yielding the highest Negative Predictive Value are chosen.<br />
+<a href="https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub">Minimum
+Negative Predictive Value</a> is a threshold criterion based on setting
+a minimum value for Negative Predictive Value. In a case where there is
+more than one cutpoint fulfilling this condition, those which yield the
+maximum Positive Predictive Value are chosen. If several cutpoints still
+remain, those yielding the highest Negative Predictive Value are
+chosen.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MinValueNPV</span>
 threshold criterion from the
@@ -5623,12 +5625,13 @@ follows:<br />
 <h3>1.5.13 Threshold Criterion Using Minimum Positive Predictive Value
 (TC_MinValuePPV)</h3>
 <div class="line-block"><br />
-<a href="https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub">TC_MinValuePPV</a>
-is a threshold criterion based on setting a minimum value for Positive
-Predictive Value. In a case where there is more than one cutpoint
-fulfilling this condition, those which yield the maximum Negative
-Predictive Value are chosen. If several cutpoints still remain, those
-yielding the highest Positive Predictive Value are chosen.<br />
+<a href="https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub">Minimum
+Positive Predictive Value</a> is a threshold criterion based on setting
+a minimum value for Positive Predictive Value. In a case where there is
+more than one cutpoint fulfilling this condition, those which yield the
+maximum Negative Predictive Value are chosen. If several cutpoints still
+remain, those yielding the highest Positive Predictive Value are
+chosen.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MinValuePPV</span>
 threshold criterion from the
@@ -5773,11 +5776,10 @@ follows:<br />
 <h3>1.5.14 Threshold Criterion Using Negative Equals Positive Predictive
 Values (TC_NPVEqualPPV)</h3>
 <div class="line-block"><br />
-<a href="https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub">TC_NPVEqualPPV</a>
-is a threshold criterion based on setting minimum values for Predictive
-Values. In a case where there is more than one cutpoint fulfilling these
-conditions, those which yield the maximum Negative or maximum Positive
-Predictive Value are chosen.<br />
+<a href="https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub">Negative
+Equals Positive Predictive Values</a> is a threshold criterion based on
+the equality of NPV and PPV. Since NPV may not be exactly equal to PPV,
+the absolute value of the difference between them is minimized.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">NPVEqualPPV</span>
 threshold criterion from the
@@ -5918,10 +5920,11 @@ follows:<br />
 <div id="threshold-criterion-using-minimum-p-value-tc_minpvalue" class="section level3">
 <h3>1.5.15 Threshold Criterion Using Minimum P-Value (TC_MinPvalue)</h3>
 <div class="line-block"><br />
-<a href="https://www.jstor.org/stable/2529881?origin=crossref">TC_MinPvalue</a>
-is a threshold criterion based on the minimum p-value associated with
-the statistical Chi-squared test which measures the association between
-the marker and the binary result obtained on using the cutpoint.<br />
+<a href="https://www.jstor.org/stable/2529881?origin=crossref">Minimum
+P-Value</a> is a threshold criterion based on the optimally lowest
+p-value associated with the statistical Chi-squared test which measures
+the association between the marker and the binary result obtained on
+using the cutpoint.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">MinPvalue</span>
 threshold criterion from the
@@ -6070,12 +6073,12 @@ follows:<br />
 <h3>1.5.16 Threshold Criterion Using ROC Curve Point Closest to Observed
 Prevalence (TC_ObservedPrev)</h3>
 <div class="line-block"><br />
-<a href="https://besjournals.onlinelibrary.wiley.com/doi/full/10.1046/j.1365-2664.2001.00647.x">TC_ObservedPrev</a>
-is a threshold criterion based on setting the closest value to observed
-prevalence using the prevalence estimated from the sample. The criterion
-is thus valid in cases where the diagnostic test takes values in the
-interval (0,1), and it is a useful method in cases where preserving
-prevalence is of prime importance.<br />
+<a href="https://besjournals.onlinelibrary.wiley.com/doi/full/10.1046/j.1365-2664.2001.00647.x">Observed
+Prevalence</a> is a threshold criterion based on setting the closest
+value to the observed prevalence using the prevalence estimated from the
+sample. The criterion is thus valid in cases where the diagnostic test
+takes values in the interval (0,1), and it is a useful method in cases
+where preserving prevalence is of prime importance.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">ObservedPrev</span> threshold criterion from the
 <mark style="background-color: #CCECFF"><strong>OptimalCutpoints</strong></mark>
