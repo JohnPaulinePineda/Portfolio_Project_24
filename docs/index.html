@@ -533,10 +533,27 @@ References</strong></a></li>
 <div id="table-of-contents" class="section level1">
 <h1><strong>1. Table of Contents</strong></h1>
 <div class="line-block"><br />
-This document presents a non-exhaustive list of dichotomization
-thresholding strategies applied to optimize classification performance
-using various helpful packages in
-<mark style="background-color: #CCECFF"><strong>R</strong></mark>.<br />
+This project explores the various dichotomization thresholding
+strategies for optimally classifying categorical responses using various
+helpful packages in
+<mark style="background-color: #CCECFF"><strong>R</strong></mark>. Using
+a <strong>Logistic Regression</strong> model structure, threshold
+criteria applied in the analysis to support optimal class prediction
+included <strong>Minimum Sensitivity</strong>, <strong>Minimum
+Specificity</strong>, <strong>Maximum Product of Specificity and
+Sensitivity</strong>, <strong>ROC Curve Point Closest to Point
+(0,1)</strong>, <strong>Sensitivity Equals Specificity</strong>,
+<strong>Youden’s Index</strong>, <strong>Maximum Efficiency</strong>,
+<strong>Minimization of Most Frequent Error</strong>, <strong>Maximum
+Diagnostic Odds Ratio</strong>, <strong>Maximum Kappa</strong>,
+<strong>Minimum Negative Predictive Value</strong>, <strong>Minimum
+Positive Predictive Value</strong>, <strong>Negative Predictive Value
+Equals Positive Predictive Value</strong>, <strong>Minimum
+P-Value</strong> and <strong>ROC Curve Point Closest to Observed
+Prevalence</strong>. The optimal thresholds determined for all criteria
+were compared and evaluated in terms of their relevance to the
+sensitivity and specificity objectives of the classification problem at
+hand.<br />
 <br />
 Dichotomization thresholding is a process applied during classification
 model development aimed at selecting a cutpoint to define the positive
@@ -6224,41 +6241,41 @@ Criterion performance comparison:<br />
 supported a generally optimal classification performance considering the
 relative weights of sensitivity and specificity by demonstrating the
 best and most consistent metrics are as follows:<br />
-     <strong>[A.1]</strong> MaxProdSpSe with Apparent Sensitivity =
-0.80153, Apparent Specificity = 0.87354<br />
-     <strong>[A.2]</strong> ROC01 with Apparent Sensitivity = 0.80153,
-Apparent Specificity = 0.87354<br />
-     <strong>[A.3]</strong> Youden with Apparent Sensitivity = 0.80153,
-Apparent Specificity = 0.87354<br />
-     <strong>[A.4]</strong> MaxEfficiency with Apparent Sensitivity =
-0.80153, Apparent Specificity = 0.87354<br />
-     <strong>[A.5]</strong> MaxKappa with Apparent Sensitivity =
-0.80153, Apparent Specificity = 0.87354<br />
+     <strong>[A.1]</strong> <strong>MaxProdSpSe</strong> with Apparent
+Sensitivity = 0.80153, Apparent Specificity = 0.87354<br />
+     <strong>[A.2]</strong> <strong>ROC01</strong> with Apparent
+Sensitivity = 0.80153, Apparent Specificity = 0.87354<br />
+     <strong>[A.3]</strong> <strong>Youden</strong> with Apparent
+Sensitivity = 0.80153, Apparent Specificity = 0.87354<br />
+     <strong>[A.4]</strong> <strong>MaxEfficiency</strong> with Apparent
+Sensitivity = 0.80153, Apparent Specificity = 0.87354<br />
+     <strong>[A.5]</strong> <strong>MaxKappa</strong> with Apparent
+Sensitivity = 0.80153, Apparent Specificity = 0.87354<br />
 <br />
 <strong>[B]</strong> The dichotomization threshold criterion which
 supported a generally optimal classification performance considering the
 equal weights of sensitivity and specificity by demonstrating the best
 and most consistent metrics are as follows:<br />
-     <strong>[B.1]</strong> SpEqualSe with Apparent Sensitivity =
-0.82634, Apparent Specificity = 0.82670<br />
+     <strong>[B.1]</strong> <strong>SpEqualSe</strong> with Apparent
+Sensitivity = 0.82634, Apparent Specificity = 0.82670<br />
 <br />
 <strong>[C]</strong> The dichotomization threshold criteria which
 supported a specifically optimal classification performance considering
 more weight on maintaining low false negative cases by demonstrating the
 best and most consistent metrics are as follows:<br />
-     <strong>[C.1]</strong> MinValueSe with Apparent Sensitivity =
-0.90458, Apparent Specificity = 0.73536<br />
-     <strong>[C.2]</strong> MinValueNPV with Apparent Sensitivity =
-0.94656, Apparent Specificity = 0.62763<br />
+     <strong>[C.1]</strong> <strong>MinValueSe</strong> with Apparent
+Sensitivity = 0.90458, Apparent Specificity = 0.73536<br />
+     <strong>[C.2]</strong> <strong>MinValueNPV</strong> with Apparent
+Sensitivity = 0.94656, Apparent Specificity = 0.62763<br />
 <br />
 <strong>[D]</strong> The dichotomization threshold criteria which
 supported a specifically optimal classification performance considering
 more weight on maintaining low false positive cases by demonstrating the
 best and most consistent metrics are as follows:<br />
-     <strong>[D.1]</strong> MinValueSp with Apparent Sensitivity =
-0.72710, Apparent Specificity = 0.90398<br />
-     <strong>[D.2]</strong> MinValuePPV with Apparent Sensitivity =
-0.72710, Apparent Specificity = 0.90398<br />
+     <strong>[D.1]</strong> <strong>MinValueSp</strong> with Apparent
+Sensitivity = 0.72710, Apparent Specificity = 0.90398<br />
+     <strong>[D.2]</strong> <strong>MinValuePPV</strong> with Apparent
+Sensitivity = 0.72710, Apparent Specificity = 0.90398<br />
 </div>
 <div class="sourceCode" id="cb180"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb180-1"><a href="#cb180-1" aria-hidden="true" tabindex="-1"></a><span class="do">##################################</span></span>
 <span id="cb180-2"><a href="#cb180-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Consolidating all evaluation results</span></span>
