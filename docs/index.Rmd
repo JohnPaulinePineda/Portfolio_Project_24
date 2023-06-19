@@ -35,6 +35,9 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
 |      **[B.2]** 4/5 predictors = All remaining variables (0/4 factor + 4/4 numeric)
 |     
 | 
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.1, warning=FALSE, message=FALSE}
 ##################################
 # Loading R libraries
@@ -120,6 +123,8 @@ PDA <- Solubility_Train
 )
 ```
 
+</details>
+
 ##  1.2 Data Quality Assessment
 |
 | Data quality assessment:
@@ -133,6 +138,9 @@ PDA <- Solubility_Train
 | **[D]** No high skewness observed for any variables with Skewness>3 or Skewness<(-3).
 |
 |
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.2, warning=FALSE, message=FALSE}
 ##################################
 # Loading dataset
@@ -350,6 +358,8 @@ if (length(names(DQA.Predictors.Numeric))==0) {
 
 ```
 
+</details>
+
 ##  1.3 Data Preprocessing
 
 ###  1.3.1 Outlier
@@ -362,6 +372,10 @@ if (length(names(DQA.Predictors.Numeric))==0) {
 |      **[A.3]** <span style="color: #FF0000">NumHalogen</span> variable (99 outliers detected)
 |      **[A.4]** <span style="color: #FF0000">hydrophilicFactor</span> variable (53 outliers detected)
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.3.1, warning=FALSE, message=FALSE, fig.width=15, fig.height=3}
 ##################################
 # Loading dataset
@@ -413,6 +427,8 @@ dim(DPA.Predictors.Numeric)
 
 ```
 
+</details>
+
 ###  1.3.2 Zero and Near-Zero Variance
 |
 | Zero and near-zero variance data assessment:
@@ -421,6 +437,10 @@ dim(DPA.Predictors.Numeric)
 |
 | **[B]** No low variance noted for any variables using a preprocessing summary from the <mark style="background-color: #CCECFF">**caret**</mark> package. The <span style="color: #0000FF">nearZeroVar</span> method using both the <span style="color: #0000FF">freqCut</span> and <span style="color: #0000FF">uniqueCut</span> criteria set at 95/5 and 10, respectively, were applied on the dataset.
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.3.2, warning=FALSE, message=FALSE}
 ##################################
 # Loading dataset
@@ -482,12 +502,18 @@ if ((nrow(DPA_LowVariance[DPA_LowVariance$nzv,]))==0){
 
 ```
 
+</details>
+
 ###  1.3.3 Collinearity
 |
 | High collinearity data assessment:
 |
 | **[A]** No high correlation > 95% were noted for any 2 variable pairs as confirmed using the preprocessing summaries from the <mark style="background-color: #CCECFF">**caret**</mark> and <mark style="background-color: #CCECFF">**lares**</mark> packages.
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.3.3, warning=FALSE, message=FALSE}
 ##################################
 # Loading dataset
@@ -582,12 +608,18 @@ if (DPA_HighlyCorrelatedCount > 0) {
 
 ```
 
+</details>
+
 ###  1.3.4 Linear Dependencies
 |
 | Linear dependency data assessment:
 |
 | **[A]** No linear dependencies noted for any subsets of variables using the preprocessing summary from the <mark style="background-color: #CCECFF">**caret**</mark> package applying the <span style="color: #0000FF">findLinearCombos</span> method which utilizes the QR decomposition of a matrix to enumerate sets of linear combinations (if they exist). 
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.3.4, warning=FALSE, message=FALSE}
 ##################################
 # Loading dataset
@@ -663,6 +695,8 @@ if (DPA_LinearlyDependentCount > 0) {
 
 ```
 
+</details>
+
 ###  1.3.5 Pre-Processed Dataset
 |
 | Preliminary dataset assessment:
@@ -678,6 +712,10 @@ if (DPA_LinearlyDependentCount > 0) {
 | **[C]** Pre-processing actions applied:
 |      **[C.1]** No predictors removed due to zero or near-zero variance, high correlation or linear dependencies 
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.3.5, warning=FALSE, message=FALSE}
 ##################################
 # Creating the pre-modelling
@@ -698,6 +736,8 @@ dim(PMA_PreModelling_Train)
 
 ```
 
+</details>
+
 ## 1.4 Data Exploration
 |
 | Exploratory data analysis:
@@ -708,6 +748,10 @@ dim(PMA_PreModelling_Train)
 |      **[A.3]** <span style="color: #FF0000">NumHalogen</span> variable (numeric)
 |      **[A.4]** <span style="color: #FF0000">HydrophilicFactor</span> variable (numeric)
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.4, warning=FALSE, message=FALSE}
 ##################################
 # Loading dataset
@@ -739,6 +783,8 @@ featurePlot(x = EDA.Predictors.Numeric,
 
 ```
 
+</details>
+
 ## 1.5 Predictive Model Development and Dichotomization Thresholding
 
 ###  1.5.1 Logistic Regression Model Index and Probability Curve Estimation
@@ -761,6 +807,10 @@ featurePlot(x = EDA.Predictors.Numeric,
 |      **[E.2]** <span style="color: #FF0000">NumCarbon</span> variable (numeric)
 |      **[E.3]** <span style="color: #FF0000">NumHalogen</span> variable (numeric)
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.1, warning=FALSE, message=FALSE}
 ##################################
 # Creating a local object
@@ -955,6 +1005,8 @@ plot(LR_VarImp,
 
 ```
 
+</details>
+
 ###  1.5.2 Threshold Criterion Using Minimum Sensitivity (TC_MinValueSe)
 |
 | [Minimum Sensitivity](https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110) is a threshold criterion based on setting a minimum value for Sensitivity and maximizing Specificity, subject to this condition. Hence, in a case where there is more than one cutpoint fulfilling this condition, those which yield maximum Specificity are chosen. If several cutpoints still remain, those yielding the greatest Sensitivity are chosen.
@@ -969,6 +1021,10 @@ plot(LR_VarImp,
 |      **[C.2]** Apparent Sensitivity = 0.90458
 |      **[C.3]** Apparent Specificity = 0.73536
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.2, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -1090,6 +1146,8 @@ MINVALUESE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUESE.SUM
 
 ```
 
+</details>
+
 ###  1.5.3 Threshold Criterion Using Minimum Specificity (TC_MinValueSp)
 |
 | [Minimum Specificity](https://onlinelibrary.wiley.com/doi/10.1002/sim.4780081110) is a threshold criterion based on setting a minimum value for Specificity and maximizing Sensitivity, subject to this condition. Hence, in a case where there is more than one cutpoint fulfilling this condition, those which yield maximum Sensitivity are chosen. If several cutpoints still remain, those yielding the greatest Specificity are chosen.
@@ -1104,6 +1162,10 @@ MINVALUESE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUESE.SUM
 |      **[C.2]** Apparent Sensitivity = 0.72710
 |      **[C.3]** Apparent Specificity = 0.90398
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.3, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -1225,6 +1287,8 @@ MINVALUESP.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUESP.SUM
 
 ```
 
+</details>
+
 ###  1.5.4 Threshold Criterion Using Maximum Product of Specificity and Sensitivity (TC_MaxProdSpSe)
 |
 | [Maximum Product of Specificity and Sensitivity](https://academic.oup.com/ibdjournal/article/14/12/1660/4654949) is a threshold criterion based on the optimally highest product of Specificity and Sensitivity, which is the same as the method based on maximization of the Accuracy Area.
@@ -1238,6 +1302,10 @@ MINVALUESP.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUESP.SUM
 |      **[C.2]** Apparent Sensitivity = 0.80153
 |      **[C.3]** Apparent Specificity = 0.87354
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.4, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -1358,6 +1426,8 @@ MAXPRODSPSE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXPRODSPSE.S
 
 ```
 
+</details>
+
 ###  1.5.5 Threshold Criterion Using ROC Curve Point Closest to Point (0,1) (TC_ROC01)
 |
 | [ROC Curve Point Closest to Point (0,1)](https://www.sciencedirect.com/science/article/abs/pii/S0001299878800142?via%3Dihub) is a threshold criterion which refers to the upper leftmost corner of the unit square.
@@ -1371,6 +1441,10 @@ MAXPRODSPSE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXPRODSPSE.S
 |      **[C.2]** Apparent Sensitivity = 0.80153
 |      **[C.3]** Apparent Specificity = 0.87354
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.5, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -1490,6 +1564,8 @@ ROC01.SUMMARY$ApparentSpecificity <- as.numeric(as.character(ROC01.SUMMARY$Appar
 
 ```
 
+</details>
+
 ###  1.5.6 Threshold Criterion Using Sensitivity Equals Specificity (TC_SpEqualSe)
 |
 | [Sensitivity Equals Specificity](https://www.sciencedirect.com/science/article/abs/pii/002217599500078O) is a threshold criterion based on the equality of Sensitivity and Specificity. Since Specificity may not be exactly equal to Sensitivity, the absolute value of the difference between them is minimized.
@@ -1503,6 +1579,10 @@ ROC01.SUMMARY$ApparentSpecificity <- as.numeric(as.character(ROC01.SUMMARY$Appar
 |      **[C.2]** Apparent Sensitivity = 0.82634
 |      **[C.3]** Apparent Specificity = 0.82670
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.6, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -1622,6 +1702,8 @@ SPEQUALSE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(SPEQUALSE.SUMMA
 
 ```
 
+</details>
+
 ###  1.5.7 Threshold Criterion Using Youden's Index (TC_Youden)
 |
 | [Youden](https://acsjournals.onlinelibrary.wiley.com/doi/pdf/10.1002/1097-0142%281950%293%3A1%3C32%3A%3AAID-CNCR2820030106%3E3.0.CO%3B2-3) is a threshold criterion based on Youden’s Index which is computed as the maximum of the sum of Sensitivity and Specificity subtracted by 1. This is identical from an optimization point of view to the method that maximizes the sum of Sensitivity and Specificity and to the criterion that maximizes concordance, which is a monotone function of the AUC.
@@ -1637,6 +1719,10 @@ SPEQUALSE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(SPEQUALSE.SUMMA
 |      **[C.2]** Apparent Sensitivity = 0.80153
 |      **[C.3]** Apparent Specificity = 0.87354
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.7, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -1760,6 +1846,8 @@ YOUDEN.SUMMARY$ApparentSpecificity <- as.numeric(as.character(YOUDEN.SUMMARY$App
 
 ```
 
+</details>
+
 ###  1.5.8 Threshold Criterion Using Maximum Efficiency (TC_MaxEfficiency)
 |
 | [Maximum Efficiency](https://europepmc.org/article/MED/15622737) is a threshold criterion based on maximization of the Efficiency, Accuracy, Validity Index or percentage of cases correctly classified. This criterion is similar to the criterion based on minimization of the Misclassification Rate which measures the error in cases where diseased and disease-free patients are misdiagnosed.
@@ -1774,6 +1862,10 @@ YOUDEN.SUMMARY$ApparentSpecificity <- as.numeric(as.character(YOUDEN.SUMMARY$App
 |      **[C.2]** Apparent Sensitivity = 0.80153
 |      **[C.3]** Apparent Specificity = 0.87354
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.8, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -1895,6 +1987,8 @@ MAXEFFICIENCY.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXEFFICIEN
 
 ```
 
+</details>
+
 ###  1.5.9 Threshold Criterion Using Minimization of Most Frequent Error (TC_Minimax)
 |
 | [Minimization of Most Frequent Error](https://www.jstor.org/stable/2347839?origin=crossref) is a threshold criterion based on the optimally lowest most frequent error. In a case where there is more than one cutpoint fulfilling this condition, those which yield maximum Sensitivity or maximum Specificity are chosen.
@@ -1908,6 +2002,10 @@ MAXEFFICIENCY.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXEFFICIEN
 |      **[C.2]** Apparent Sensitivity = 0.84351
 |      **[C.3]** Apparent Specificity = 0.81030
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.9, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -2027,6 +2125,8 @@ MINIMAX.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINIMAX.SUMMARY$A
 
 ```
 
+</details>
+
 ###  1.5.10 Threshold Criterion Using Maximum Diagnostic Odds Ratio (TC_MaxDOR)
 |
 | [Maximum Diagnostic Odds Ratio](https://us.sagepub.com/en-us/nam/evaluating-medical-tests/book3306) is a threshold criterion based on the optimally highest Diagnostic Odds Ratio (DOR).
@@ -2040,6 +2140,10 @@ MINIMAX.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINIMAX.SUMMARY$A
 |      **[C.2]** Apparent Sensitivity = 0.31298
 |      **[C.3]** Apparent Specificity = 1.00000
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.10, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -2159,6 +2263,8 @@ MAXDOR.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXDOR.SUMMARY$App
 
 ```
 
+</details>
+
 ###  1.5.11 Threshold Criterion Using Maximum Kappa (TC_MaxKappa)
 |
 | [Maximum Kappa](https://journals.sagepub.com/doi/10.1177/001316446002000104) is a threshold criterion based on the optimally highest Kappa Index which makes full use of the information in the confusion matrix to assess the improvement over chance prediction.
@@ -2172,6 +2278,10 @@ MAXDOR.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXDOR.SUMMARY$App
 |      **[C.2]** Apparent Sensitivity = 0.80153
 |      **[C.3]** Apparent Specificity = 0.87354
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.11, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -2293,6 +2403,8 @@ MAXKAPPA.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXKAPPA.SUMMARY
 
 ```
 
+</details>
+
 ###  1.5.12 Threshold Criterion Using Minimum Negative Predictive Value (TC_MinValueNPV)
 |
 | [Minimum Negative Predictive Value](https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub) is a threshold criterion based on setting a minimum value for Negative Predictive Value. In a case where there is more than one cutpoint fulfilling this condition, those which yield the maximum Positive Predictive Value are chosen. If several cutpoints still remain, those yielding the highest Negative Predictive Value are chosen.
@@ -2307,6 +2419,10 @@ MAXKAPPA.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MAXKAPPA.SUMMARY
 |      **[C.2]** Apparent Sensitivity = 0.94656
 |      **[C.3]** Apparent Specificity = 0.62763
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.12, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -2428,6 +2544,8 @@ MINVALUENPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUENPV.S
 
 ```
 
+</details>
+
 ###  1.5.13 Threshold Criterion Using Minimum Positive Predictive Value (TC_MinValuePPV)
 |
 | [Minimum Positive Predictive Value](https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub) is a threshold criterion based on setting a minimum value for Positive Predictive Value. In a case where there is more than one cutpoint fulfilling this condition, those which yield the maximum Negative Predictive Value are chosen. If several cutpoints still remain, those yielding the highest Positive Predictive Value are chosen.
@@ -2442,6 +2560,10 @@ MINVALUENPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUENPV.S
 |      **[C.2]** Apparent Sensitivity = 0.72710
 |      **[C.3]** Apparent Specificity = 0.90398
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.13, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -2563,6 +2685,8 @@ MINVALUEPPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUEPPV.S
 
 ```
 
+</details>
+
 ###  1.5.14 Threshold Criterion Using Negative Equals Positive Predictive Values (TC_NPVEqualPPV)
 |
 | [Negative Equals Positive Predictive Values](https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub) is a threshold criterion based on the equality of NPV and PPV. Since NPV may not be exactly equal to PPV, the absolute value of the difference between them is minimized.
@@ -2576,6 +2700,10 @@ MINVALUEPPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINVALUEPPV.S
 |      **[C.2]** Apparent Sensitivity = 0.72710
 |      **[C.3]** Apparent Specificity = 0.90398
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.14, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -2696,6 +2824,8 @@ NPVEQUALPPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(NPVEQUALPPV.S
 
 ```
 
+</details>
+
 ###  1.5.15 Threshold Criterion Using Minimum P-Value (TC_MinPvalue)
 |
 | [Minimum P-Value](https://www.jstor.org/stable/2529881?origin=crossref) is a threshold criterion based on the optimally lowest p-value associated with the statistical Chi-squared test which measures the association between the marker and the binary result obtained on using the cutpoint.
@@ -2710,6 +2840,10 @@ NPVEQUALPPV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(NPVEQUALPPV.S
 |      **[C.2]** Apparent Sensitivity = 1.00000
 |      **[C.3]** Apparent Specificity = 0.08431
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.15, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -2833,6 +2967,8 @@ MINPVALUE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINPVALUE.SUMMA
 
 ```
 
+</details>
+
 ###  1.5.16 Threshold Criterion Using ROC Curve Point Closest to Observed Prevalence (TC_ObservedPrev)
 |
 | [Observed Prevalence](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1046/j.1365-2664.2001.00647.x) is a threshold criterion based on setting the closest value to the observed prevalence using the prevalence estimated from the sample. The criterion is thus valid in cases where the diagnostic test takes values in the interval (0,1), and it is a useful method in cases where preserving prevalence is of prime importance.
@@ -2846,6 +2982,10 @@ MINPVALUE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINPVALUE.SUMMA
 |      **[C.2]** Apparent Sensitivity = 0.84733
 |      **[C.3]** Apparent Specificity = 0.80796
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.5.16, warning=FALSE, message=FALSE}
 ######################################
 # Creating a function to gather the 
@@ -2965,6 +3105,8 @@ OBSERVEDPREV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(OBSERVEDPREV
 
 ```
 
+</details>
+
 ##  1.6 Dichotomization Threshold Criterion Evaluation Summary
 |
 | Criterion performance comparison:
@@ -2987,6 +3129,10 @@ OBSERVEDPREV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(OBSERVEDPREV
 |      **[D.1]** **MinValueSp** with Apparent Sensitivity = 0.72710, Apparent Specificity = 0.90398
 |      **[D.2]** **MinValuePPV** with Apparent Sensitivity = 0.72710, Apparent Specificity = 0.90398
 |
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
 ```{r section_1.6, warning=FALSE, message=FALSE}
 ##################################
 # Consolidating all evaluation results
@@ -3047,6 +3193,8 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
                            cex = 2))
 
 ```
+
+</details>
 
 # **2. References**
 |
