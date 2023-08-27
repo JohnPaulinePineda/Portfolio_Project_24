@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
 ```
 # **1. Table of Contents**
 |
-| This project explores different dichotomization thresholding strategies for optimally classifying categorical responses using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>. Using a **Logistic Regression** model structure, threshold criteria applied in the analysis to support optimal class prediction included **Minimum Sensitivity**, **Minimum Specificity**, **Maximum Product of Specificity and Sensitivity**, **ROC Curve Point Closest to Point (0,1)**, **Sensitivity Equals Specificity**, **Youden’s Index**, **Maximum Efficiency**, **Minimization of Most Frequent Error**, **Maximum Diagnostic Odds Ratio**, **Maximum Kappa**, **Minimum Negative Predictive Value**, **Minimum Positive Predictive Value**, **Negative Predictive Value Equals Positive Predictive Value**, **Minimum P-Value** and **ROC Curve Point Closest to Observed Prevalence**. The optimal thresholds determined for all criteria were compared and evaluated in terms of their relevance to the sensitivity and specificity objectives of the classification problem at hand.
+| This project explores different dichotomization thresholding strategies for optimally classifying categorical responses using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>. Using a **Logistic Regression** model structure, threshold criteria applied in the analysis to support optimal class prediction included **Minimum Sensitivity**, **Minimum Specificity**, **Maximum Product of Specificity and Sensitivity**, **ROC Curve Point Closest to Point (0,1)**, **Sensitivity Equals Specificity**, **Youden’s Index**, **Maximum Efficiency**, **Minimization of Most Frequent Error**, **Maximum Diagnostic Odds Ratio**, **Maximum Kappa**, **Minimum Negative Predictive Value**, **Minimum Positive Predictive Value**, **Negative Predictive Value Equals Positive Predictive Value**, **Minimum P-Value** and **ROC Curve Point Closest to Observed Prevalence**. The optimal thresholds determined for all criteria were compared and evaluated in terms of their relevance to the sensitivity and specificity objectives of the classification problem at hand. All results were consolidated in a [<span style="color: #FF0000">**Summary**</span>](#summary) presented at the end of the document.
 |
 | Dichotomization thresholding is a process applied during classification model development aimed at selecting a cutpoint to define the positive and negative categories from a numeric input. The criteria applied in this study (mostly contained in the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package) attempt to implement various approaches for selecting optimal thresholds under various objectives including methods based on standard diagnostic test accuracy measures (Sensitivity, Specificity, Predictive Values and Diagnostic Likelihood Ratios) and cost-benefit analysis, among others.
 |
@@ -126,8 +126,6 @@ PDA <- Solubility_Train
 </details>
 
 ##  1.2 Data Quality Assessment
-|
-| Data quality assessment:
 |
 | **[A]** No missing observations noted for any variable.
 |
@@ -364,8 +362,6 @@ if (length(names(DQA.Predictors.Numeric))==0) {
 
 ###  1.3.1 Outlier
 |
-| Outlier data assessment:
-|
 | **[A]** Outliers noted for 3 variables  with the numeric data visualized through a boxplot including observations classified as suspected outliers using the IQR criterion. The IQR criterion means that all observations above the (75th percentile + 1.5 x IQR) or below the (25th percentile - 1.5 x IQR) are suspected outliers, where IQR is the difference between the third quartile (75th percentile) and first quartile (25th percentile). Outlier treatment for numerical stability remains optional depending on potential model requirements for the subsequent steps.
 |      **[A.1]** <span style="color: #FF0000">MolWeight</span> variable (8 outliers detected)
 |      **[A.2]** <span style="color: #FF0000">NumCarbon</span> variable (35 outliers detected)
@@ -430,8 +426,6 @@ dim(DPA.Predictors.Numeric)
 </details>
 
 ###  1.3.2 Zero and Near-Zero Variance
-|
-| Zero and near-zero variance data assessment:
 |
 | **[A]** Low variance noted for any variable from the previous data quality assessment using a lower threshold.
 |
@@ -505,8 +499,6 @@ if ((nrow(DPA_LowVariance[DPA_LowVariance$nzv,]))==0){
 </details>
 
 ###  1.3.3 Collinearity
-|
-| High collinearity data assessment:
 |
 | **[A]** No high correlation > 95% were noted for any 2 variable pairs as confirmed using the preprocessing summaries from the <mark style="background-color: #CCECFF">**caret**</mark> and <mark style="background-color: #CCECFF">**lares**</mark> packages.
 |
@@ -612,8 +604,6 @@ if (DPA_HighlyCorrelatedCount > 0) {
 
 ###  1.3.4 Linear Dependencies
 |
-| Linear dependency data assessment:
-|
 | **[A]** No linear dependencies noted for any subsets of variables using the preprocessing summary from the <mark style="background-color: #CCECFF">**caret**</mark> package applying the <span style="color: #0000FF">findLinearCombos</span> method which utilizes the QR decomposition of a matrix to enumerate sets of linear combinations (if they exist). 
 |
 |
@@ -699,8 +689,6 @@ if (DPA_LinearlyDependentCount > 0) {
 
 ###  1.3.5 Pre-Processed Dataset
 |
-| Preliminary dataset assessment:
-|
 | **[A]** 951 rows (observations)
 |      **[A.1]** Train Set = 951 observations
 | 
@@ -739,8 +727,6 @@ dim(PMA_PreModelling_Train)
 </details>
 
 ## 1.4 Data Exploration
-|
-| Exploratory data analysis:
 |
 | **[A]** All numeric variables demonstrated differential relationships with the <span style="color: #FF0000">Log_Solubility_Class</span> response variable:
 |      **[A.1]** <span style="color: #FF0000">MolWeight</span> variable (numeric)
@@ -3107,9 +3093,7 @@ OBSERVEDPREV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(OBSERVEDPREV
 
 </details>
 
-##  1.6 Dichotomization Threshold Criterion Evaluation Summary
-|
-| Criterion performance comparison:
+##  1.6 Consolidated Findings
 |
 | **[A]** The dichotomization threshold criteria which supported a generally optimal classification performance considering the relative weights of sensitivity and specificity by demonstrating the best and most consistent metrics are as follows:
 |      **[A.1]** **MaxProdSpSe** with Apparent Sensitivity = 0.80153, Apparent Specificity = 0.87354
@@ -3195,8 +3179,12 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
 ```
 
 </details>
-
-# **2. References**
+|
+# **2. Summary** <a name="summary"></a>
+|
+| ![](D:/Github_Codes/ProjectPortfolio/Portfolio_Project_24/docs/Project24_Summary.png)
+|
+# **3. References**
 |
 | **[Book]** [Applied Predictive Modeling](http://appliedpredictivemodeling.com/) by Max Kuhn and Kjell Johnson
 | **[Book]** [An Introduction to Statistical Learning](https://www.statlearning.com/) by Gareth James, Daniela Witten, Trevor Hastie and Rob Tibshirani
