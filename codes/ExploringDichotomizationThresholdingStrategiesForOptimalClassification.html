@@ -6231,20 +6231,20 @@ Chunk | Output</strong></mark>
 Methodology</a> is a threshold criterion based on cost-benefit
 methodology by means of calculating the slope of the ROC curve at the
 optimal cutoff. This method weighs the relative costs of the different
-predictions in the diagnosis<br />
+predictions in the diagnosis.<br />
 <br />
 <strong>[A]</strong> The <span style="color: #0000FF">CB</span>
 threshold criterion from the
 <mark style="background-color: #CCECFF"><strong>OptimalCutpoints</strong></mark>
-package was used which applied the ROC curve point closest to the
-observed prevalence.<br />
+package was used which weighed the relative costs of the different
+predictions in the diagnosis.<br />
 <br />
 <strong>[B]</strong> The threshold criterion requires to set 1
 parameter:<br />
      <strong>[B.1]</strong> <span style="color: #FF0000">costs.ratio</span> = ratio between two
-computations: cost difference of the false positive and true negative;
-and the cost difference of the false negative and true positive, set at
-2.0<br />
+computations: cost difference of the false positive and true negative
+cases; and the cost difference of the false negative and true positive
+cases, set at 2.0<br />
 <br />
 <strong>[C]</strong> The determined optimal dichotomization threshold
 and corresponding classification metrics are summarized as

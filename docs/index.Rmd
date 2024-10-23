@@ -2957,12 +2957,12 @@ MINPVALUE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINPVALUE.SUMMA
 
 ###  1.5.16 Threshold Criterion Using Cost-Benefit Methodology (TC_CB)
 |
-| [Cost-Benefit Methodology](https://www.nejm.org/doi/full/10.1056/NEJM197507312930501) is a threshold criterion based on cost-benefit methodology by means of calculating the slope of the ROC curve at the optimal cutoff. This method weighs the relative costs of the different predictions in the diagnosis
+| [Cost-Benefit Methodology](https://www.nejm.org/doi/full/10.1056/NEJM197507312930501) is a threshold criterion based on cost-benefit methodology by means of calculating the slope of the ROC curve at the optimal cutoff. This method weighs the relative costs of the different predictions in the diagnosis.
 |
-| **[A]** The <span style="color: #0000FF">CB</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applied the ROC curve point closest to the observed prevalence.
+| **[A]** The <span style="color: #0000FF">CB</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which weighed the relative costs of the different predictions in the diagnosis.
 |  
 | **[B]** The threshold criterion requires to set 1 parameter:
-|      **[B.1]** <span style="color: #FF0000">costs.ratio</span> = ratio between two computations: cost difference of the false positive and true negative; and the cost difference of the false negative and true positive, set at 2.0
+|      **[B.1]** <span style="color: #FF0000">costs.ratio</span> = ratio between two computations: cost difference of the false positive and true negative cases; and the cost difference of the false negative and true positive cases, set at 2.0
 | 
 | **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
 |      **[C.1]** Log Solubility Class Probability Threshold = 0.64163
