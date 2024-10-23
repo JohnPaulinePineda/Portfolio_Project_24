@@ -1,6 +1,6 @@
 ---
 title: 'Supervised Learning : Exploring Dichotomization Thresholding Strategies for Optimal Classification'
-author: "John Pauline Pineda"
+author: "<b><a href='https://github.com/JohnPaulinePineda'>John Pauline Pineda</a></b>"
 date: "February 4, 2023"
 output: 
   html_document:
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
 ```
 # **1. Table of Contents**
 |
-| This project explores different dichotomization thresholding strategies for optimally classifying categorical responses using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>. Using a **Logistic Regression** model structure, threshold criteria applied in the analysis to support optimal class prediction included **Minimum Sensitivity**, **Minimum Specificity**, **Maximum Product of Specificity and Sensitivity**, **ROC Curve Point Closest to Point (0,1)**, **Sensitivity Equals Specificity**, **Youden’s Index**, **Maximum Efficiency**, **Minimization of Most Frequent Error**, **Maximum Diagnostic Odds Ratio**, **Maximum Kappa**, **Minimum Negative Predictive Value**, **Minimum Positive Predictive Value**, **Negative Predictive Value Equals Positive Predictive Value**, **Minimum P-Value** and **ROC Curve Point Closest to Observed Prevalence**. The optimal thresholds determined for all criteria were compared and evaluated in terms of their relevance to the sensitivity and specificity objectives of the classification problem at hand. All results were consolidated in a [<span style="color: #FF0000">**Summary**</span>](#summary) presented at the end of the document.
+| This project explores different dichotomization thresholding strategies for optimally classifying categorical responses using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>. Using a **Logistic Regression** model structure, threshold criteria applied in the analysis to support optimal class prediction included **Minimum Sensitivity**, **Minimum Specificity**, **Maximum Product of Specificity and Sensitivity**, **ROC Curve Point Closest to Point (0,1)**, **Sensitivity Equals Specificity**, **Youden’s Index**, **Maximum Efficiency**, **Minimization of Most Frequent Error**, **Maximum Diagnostic Odds Ratio**, **Maximum Kappa**, **Minimum Negative Predictive Value**, **Minimum Positive Predictive Value**, **Negative Predictive Value Equals Positive Predictive Value**, **Minimum P-Value** and **Cost-Benefit Methodology**. The optimal thresholds determined for all criteria were compared and evaluated in terms of their relevance to the sensitivity and specificity objectives of the classification problem at hand. All results were consolidated in a [<span style="color: #FF0000">**Summary**</span>](#summary) presented at the end of the document.
 |
 | Dichotomization thresholding is a process applied during classification model development aimed at selecting a cutpoint to define the positive and negative categories from a numeric input. The criteria applied in this study (mostly contained in the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package) attempt to implement various approaches for selecting optimal thresholds under various objectives including methods based on standard diagnostic test accuracy measures (Sensitivity, Specificity, Predictive Values and Diagnostic Likelihood Ratios) and cost-benefit analysis, among others.
 |
@@ -55,7 +55,7 @@ library(pls)
 library(corrplot)
 library(tidyverse)
 library(lares)
-library(DMwR)
+library(DMwR2)
 library(gridExtra)
 library(rattle)
 library(rpart.plot)
@@ -2955,18 +2955,19 @@ MINPVALUE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINPVALUE.SUMMA
 
 </details>
 
-###  1.5.16 Threshold Criterion Using ROC Curve Point Closest to Observed Prevalence (TC_ObservedPrev)
+###  1.5.16 Threshold Criterion Using Cost-Benefit Methodology (TC_CB)
 |
-| [Observed Prevalence](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1046/j.1365-2664.2001.00647.x) is a threshold criterion based on setting the closest value to the observed prevalence using the prevalence estimated from the sample. The criterion is thus valid in cases where the diagnostic test takes values in the interval (0,1), and it is a useful method in cases where preserving prevalence is of prime importance.
+| [Cost-Benefit Methodology](https://www.nejm.org/doi/full/10.1056/NEJM197507312930501) is a threshold criterion based on cost-benefit methodology by means of calculating the slope of the ROC curve at the optimal cutoff. This method weighs the relative costs of the different predictions in the diagnosis
 |
-| **[A]** The <span style="color: #0000FF">ObservedPrev</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applied the ROC curve point closest to the observed prevalence.
+| **[A]** The <span style="color: #0000FF">CB</span> threshold criterion from the <mark style="background-color: #CCECFF">**OptimalCutpoints**</mark> package was used which applied the ROC curve point closest to the observed prevalence.
 |  
-| **[B]** The threshold criterion does not require to set any parameter.
+| **[B]** The threshold criterion requires to set 1 parameter:
+|      **[B.1]** <span style="color: #FF0000">costs.ratio</span> = ratio between two computations: cost difference of the false positive and true negative; and the cost difference of the false negative and true positive, set at 2.0
 | 
 | **[C]** The determined optimal dichotomization threshold and corresponding classification metrics are summarized as follows:
-|      **[C.1]** Log Solubility Class Probability Threshold = 0.54821
-|      **[C.2]** Apparent Sensitivity = 0.84733
-|      **[C.3]** Apparent Specificity = 0.80796
+|      **[C.1]** Log Solubility Class Probability Threshold = 0.64163
+|      **[C.2]** Apparent Sensitivity = 0.90458
+|      **[C.3]** Apparent Specificity = 0.73536
 |
 |
 
@@ -2976,24 +2977,25 @@ MINPVALUE.SUMMARY$ApparentSpecificity <- as.numeric(as.character(MINPVALUE.SUMMA
 ######################################
 # Creating a function to gather the 
 # classification metrics applying the
-# threshold criterion using the point
-# with closest value to observed prevalence
+# threshold criterion using the
+# cost-benefit methodology
 ######################################
-ClassificationMetrics.Class0.LO.OBSERVEDPREV <- function(SourceData,Response,Predictor){
+ClassificationMetrics.Class0.LO.CB <- function(SourceData,Response,Predictor){
   ThresholdCriterion <- optimal.cutpoints(X = Predictor,
                                          status = Response,
                                          tag.healthy = "Low",
-                                         methods = c("ObservedPrev"),
+                                         methods = c("CB"),
                                          data = SourceData,
                                          pop.prev = NULL,
+                                         control = control.cutpoints( costs.ratio=2),
                                          ci.fit = FALSE,
                                          direction = c("<"))
   
   summary(ThresholdCriterion)
-  (OptimalThreshold <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$cutoff[1])
-  (ThresholdSensitivity <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$Se[,1][1])
-  (ThresholdSpecificity <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$Sp[,1][1])
-  (ThresholdROCAUC <- ThresholdCriterion$ObservedPrev$Global$measures.acc$AUC[1])
+  (OptimalThreshold <- ThresholdCriterion$CB$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$CB$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$CB$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$CB$Global$measures.acc$AUC[1])
   plot.optimal.cutpoints(ThresholdCriterion, 
                          col=c("#5680E9"), 
                          legend=FALSE, 
@@ -3008,21 +3010,22 @@ ClassificationMetrics.Class0.LO.OBSERVEDPREV <- function(SourceData,Response,Pre
   return(ClassificationMetricsList)
 }
 
-ClassificationMetrics.Class0.HI.OBSERVEDPREV <- function(SourceData,Response,Predictor){
+ClassificationMetrics.Class0.HI.CB <- function(SourceData,Response,Predictor){
   ThresholdCriterion <- optimal.cutpoints(X = Predictor,
                                          status = Response,
                                          tag.healthy = "Low",
-                                         methods = c("ObservedPrev"),
+                                         methods = c("CB"),
                                          data = SourceData,
                                          pop.prev = NULL,
+                                         control = control.cutpoints( costs.ratio=2),
                                          ci.fit = FALSE,
                                          direction = c(">"))
   
   summary(ThresholdCriterion)
-  (OptimalThreshold <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$cutoff[1])
-  (ThresholdSensitivity <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$Se[,1][1])
-  (ThresholdSpecificity <- ThresholdCriterion$ObservedPrev$Global$optimal.cutoff$Sp[,1][1])
-  (ThresholdROCAUC <- ThresholdCriterion$ObservedPrev$Global$measures.acc$AUC[1])
+  (OptimalThreshold <- ThresholdCriterion$CB$Global$optimal.cutoff$cutoff[1])
+  (ThresholdSensitivity <- ThresholdCriterion$CB$Global$optimal.cutoff$Se[,1][1])
+  (ThresholdSpecificity <- ThresholdCriterion$CB$Global$optimal.cutoff$Sp[,1][1])
+  (ThresholdROCAUC <- ThresholdCriterion$CB$Global$measures.acc$AUC[1])
   plot.optimal.cutpoints(ThresholdCriterion, 
                          col=c("#5680E9"), 
                          legend=FALSE, 
@@ -3050,7 +3053,7 @@ for (i in 7:7) {
   Response.i  <- colnames(LR_Model_Predictions)[6]
   Predictor.i <- colnames(LR_Model_Predictions)[i]
   
-  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.OBSERVEDPREV(LR_Model_Predictions,
+  ClassificationMetrics.i <- ClassificationMetrics.Class0.LO.CB(LR_Model_Predictions,
                                                                     Response.i,
                                                                     Predictor.i)
   OPTTH.i <- as.numeric(as.character(sprintf(ClassificationMetrics.i[1],fmt='%#.5f')))
@@ -3074,20 +3077,20 @@ ClassificationMetrics.SUMMARY <- cbind(PREDI.List,
 
 colnames(ClassificationMetrics.SUMMARY) <- c("Predictor",
                                              "ROCAUC",
-                                             "OptimalThreshold.OBSERVEDPREV",
+                                             "OptimalThreshold.CB",
                                              "ApparentSensitivity",
                                              "ApparentSpecificity")
 
-OBSERVEDPREV.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
-OBSERVEDPREV.SUMMARY$ROCAUC <- as.numeric(as.character(OBSERVEDPREV.SUMMARY$ROCAUC))
-OBSERVEDPREV.SUMMARY$ApparentSensitivity <- as.numeric(as.character(OBSERVEDPREV.SUMMARY$ApparentSensitivity))
-OBSERVEDPREV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(OBSERVEDPREV.SUMMARY$ApparentSpecificity))
+CB.SUMMARY <- as.data.frame(ClassificationMetrics.SUMMARY)
+CB.SUMMARY$ROCAUC <- as.numeric(as.character(CB.SUMMARY$ROCAUC))
+CB.SUMMARY$ApparentSensitivity <- as.numeric(as.character(CB.SUMMARY$ApparentSensitivity))
+CB.SUMMARY$ApparentSpecificity <- as.numeric(as.character(CB.SUMMARY$ApparentSpecificity))
 
-(OBSERVEDPREV.Threshold <- OBSERVEDPREV.SUMMARY$OptimalThreshold.OBSERVEDPREV)
+(CB.Threshold <- CB.SUMMARY$OptimalThreshold.CB)
 
-(OBSERVEDPREV.Sensitivity <- OBSERVEDPREV.SUMMARY$ApparentSensitivity)
+(CB.Sensitivity <- CB.SUMMARY$ApparentSensitivity)
 
-(OBSERVEDPREV.Specificity <- OBSERVEDPREV.SUMMARY$ApparentSpecificity)
+(CB.Specificity <- CB.SUMMARY$ApparentSpecificity)
 
 ```
 
@@ -3113,6 +3116,9 @@ OBSERVEDPREV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(OBSERVEDPREV
 |      **[D.1]** **MinValueSp** with Apparent Sensitivity = 0.72710, Apparent Specificity = 0.90398
 |      **[D.2]** **MinValuePPV** with Apparent Sensitivity = 0.72710, Apparent Specificity = 0.90398
 |
+| **[E]** The dichotomization threshold criterion which supported a cost-benefit approach by considering the costs of false positive or negative cases by demonstrating the best and most consistent metrics is as follows:
+|      **[E.1]** **CB** with Apparent Sensitivity = 0.84733, Apparent Specificity = 0.80796
+|
 |
 
 <details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
@@ -3122,21 +3128,69 @@ OBSERVEDPREV.SUMMARY$ApparentSpecificity <- as.numeric(as.character(OBSERVEDPREV
 # Consolidating all evaluation results
 # using the sensitivity and specificity metrics
 ##################################
-Criterion <- c('MinValueSe','MinValueSp','MaxProdSpSe','ROC01','SpEqualSe',
-           'Youden','MaxEfficiency','Minimax','MaxDOR','MaxKappa',
-           'MinValueNPV','MinValuePPV','NPVEqualPPV','MinPvalue','ObservedPrev',
-           'MinValueSe','MinValueSp','MaxProdSpSe','ROC01','SpEqualSe',
-           'Youden','MaxEfficiency','Minimax','MaxDOR','MaxKappa',
-           'MinValueNPV','MinValuePPV','NPVEqualPPV','MinPvalue','ObservedPrev')
+Criterion <- c('MinValueSe',
+               'MinValueSp',
+               'MaxProdSpSe',
+               'ROC01',
+               'SpEqualSe',
+               'Youden',
+               'MaxEfficiency',
+               'Minimax',
+               'MaxDOR',
+               'MaxKappa',
+               'MinValueNPV',
+               'MinValuePPV',
+               'NPVEqualPPV',
+               'MinPvalue',
+               'CB',
+               'MinValueSe',
+               'MinValueSp',
+               'MaxProdSpSe',
+               'ROC01',
+               'SpEqualSe',
+               'Youden',
+               'MaxEfficiency',
+               'Minimax',
+               'MaxDOR',
+               'MaxKappa',
+               'MinValueNPV',
+               'MinValuePPV',
+               'NPVEqualPPV',
+               'MinPvalue',
+               'CB')
 
 Set <- c(rep('Apparent Sensitivity',15),rep('Apparent Specificity',15))
 
-ClassificationMetrics <- c(MINVALUESE.Sensitivity,MINVALUESP.Sensitivity,MAXPRODSPSE.Sensitivity,ROC01.Sensitivity,SPEQUALSE.Sensitivity,
-                 YOUDEN.Sensitivity,MAXEFFICIENCY.Sensitivity,MINIMAX.Sensitivity,MAXDOR.Sensitivity,MAXKAPPA.Sensitivity,
-                 MINVALUENPV.Sensitivity,MINVALUEPPV.Sensitivity,NPVEQUALPPV.Sensitivity,MINPVALUE.Sensitivity,OBSERVEDPREV.Sensitivity,
-                 MINVALUESE.Specificity,MINVALUESP.Specificity,MAXPRODSPSE.Specificity,ROC01.Specificity,SPEQUALSE.Specificity,
-                 YOUDEN.Specificity,MAXEFFICIENCY.Specificity,MINIMAX.Specificity,MAXDOR.Specificity,MAXKAPPA.Specificity,
-                 MINVALUENPV.Specificity,MINVALUEPPV.Specificity,NPVEQUALPPV.Specificity,MINPVALUE.Specificity,OBSERVEDPREV.Specificity)
+ClassificationMetrics <- c(MINVALUESE.Sensitivity,
+                           MINVALUESP.Sensitivity,
+                           MAXPRODSPSE.Sensitivity,
+                           ROC01.Sensitivity,
+                           SPEQUALSE.Sensitivity,
+                           YOUDEN.Sensitivity,
+                           MAXEFFICIENCY.Sensitivity,
+                           MINIMAX.Sensitivity,
+                           MAXDOR.Sensitivity,
+                           MAXKAPPA.Sensitivity,
+                           MINVALUENPV.Sensitivity,
+                           MINVALUEPPV.Sensitivity,
+                           NPVEQUALPPV.Sensitivity,
+                           MINPVALUE.Sensitivity,
+                           CB.Sensitivity,
+                           MINVALUESE.Specificity,
+                           MINVALUESP.Specificity,
+                           MAXPRODSPSE.Specificity,
+                           ROC01.Specificity,
+                           SPEQUALSE.Specificity,
+                           YOUDEN.Specificity,
+                           MAXEFFICIENCY.Specificity,
+                           MINIMAX.Specificity,
+                           MAXDOR.Specificity,
+                           MAXKAPPA.Specificity,
+                           MINVALUENPV.Specificity,
+                           MINVALUEPPV.Specificity,
+                           NPVEQUALPPV.Specificity,
+                           MINPVALUE.Specificity,
+                           CB.Specificity)
 
 ClassificationMetrics_Summary <- as.data.frame(cbind(Criterion,Set,ClassificationMetrics))
 
@@ -3159,7 +3213,7 @@ ClassificationMetrics_Summary$Criterion <- factor(ClassificationMetrics_Summary$
                                                    'MinValuePPV',
                                                    'NPVEqualPPV',
                                                    'MinPvalue',
-                                                   'ObservedPrev'))
+                                                   'CB'))
 
 print(ClassificationMetrics_Summary, row.names=FALSE)
 
@@ -3169,7 +3223,7 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
                            main = "Dichotomization Threshold Criteria Performance Comparison",
                            ylab = "Dichotomization Threshold Criterion",
                            xlab = "Classification Performance",
-                           auto.key = list(adj = 1),
+                           auto.key = list(adj=1, space="top", columns=2),
                            type=c("p", "h"),       
                            origin = 0,
                            alpha = 0.45,
@@ -3182,7 +3236,7 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
 |
 # **2. Summary** <a name="summary"></a>
 |
-| ![](D:/Github_Codes/ProjectPortfolio/Portfolio_Project_24/docs/Project24_Summary.png)
+| ![](D:/Github_Codes/ProjectPortfolio/Portfolio_Project_24/images/Project24_Summary.png)
 |
 # **3. References**
 |
@@ -3205,7 +3259,7 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
 | **[R Package]** [corrplot](https://cran.r-project.org/web/packages/corrplot/corrplot.pdf) by Taiyun Wei
 | **[R Package]** [tidyverse](https://cran.r-project.org/web/packages/tidyverse/tidyverse.pdf) by Hadley Wickham
 | **[R Package]** [lares](https://cran.rstudio.com/web/packages/lares/lares.pdf) by Bernardo Lares
-| **[R Package]** [DMwR](https://mran.microsoft.com/snapshot/2016-05-02/web/packages/DMwR/DMwR.pdf) by Luis Torgo
+| **[R Package]** [DMwR2](https://mran.microsoft.com/snapshot/2016-05-02/web/packages/DMwR/DMwR.pdf) by Luis Torgo
 | **[R Package]** [gridExtra](https://cran.r-project.org/web/packages/gridExtra/gridExtra.pdf) by Baptiste Auguie and Anton Antonov
 | **[R Package]** [rattle](https://cran.r-project.org/web/packages/rattle/rattle.pdf) by Graham Williams
 | **[R Package]** [rpart.plot](https://cran.r-project.org/web/packages/rpart.plot/rpart.plot.pdf) by Stephen Milborrow
@@ -3254,6 +3308,7 @@ print(ClassificationMetrics_Summary, row.names=FALSE)
 | **[Publication]** [Strategies for Graphical Threshold Determination](https://www.sciencedirect.com/science/article/abs/pii/0169260791900722?via%3Dihub) by Jean Vermont (Computer Methods and Programs in Biomedicine)
 | **[Publication]** [Maximally Selected Chi-Square Statistics](https://www.jstor.org/stable/2529881?origin=crossref) by Rupert Miller and David Siegmund (Biometrics)
 | **[Publication]** [Evaluating Presence-Absence Models in Ecology: The Need to Account for Prevalence](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1046/j.1365-2664.2001.00647.x) by Stephanie Manel (Journal of Applied Ecology)
+| **[Publication]** [Primer on Certain Elements of Medical Decision Making](https://www.nejm.org/doi/full/10.1056/NEJM197507312930501) by Barbara McNeil, Emmett Keeler and James Adelstein (New England Journal of Medicine)
 | **[Course]** [Applied Data Mining and Statistical Learning](https://online.stat.psu.edu/stat508/) by Penn State Eberly College of Science
 |
 |
